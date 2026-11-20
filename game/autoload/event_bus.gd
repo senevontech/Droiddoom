@@ -10,8 +10,21 @@ extends Node
 signal enemy_died(enemy: Node, killer: Node)
 signal player_damaged(amount: float, damage_type: int)
 signal player_died
-## A shot was fired (from muzzle to where it ended). FX and audio listen.
-signal weapon_fired(from: Vector3, to: Vector3, damage_type: int)
+## HOLLOW started a dash (horizontal unit direction).
+signal player_dashed(direction: Vector3)
+## A dash dodged `threats` hits that were about to land (GDD §4.4). The
+## slow-motion + damage bonus reward listens here (P1-13).
+signal neural_sync_triggered(threats: int)
+## A weapon fired (any mode). `weapon` is a Weapon node: FX read its data
+## (flash size, type), enemies hear it (noise_radius, P1-17).
+signal weapon_fired(weapon: Node3D, muzzle: Vector3, direction: Vector3)
+## A beam weapon drew its beam this tick (from muzzle to where it stopped).
+signal beam_drawn(from: Vector3, to: Vector3, width: float, damage_type: int)
+## Something exploded (rockets, grenades, later Kamikazes and barrels).
+signal explosion_happened(position: Vector3, radius: float, damage_type: int)
+## `source` should trail smoke for `duration` s (-1 = until it is freed).
+## Badly damaged droids and burning wrecks use it; CombatFX draws it.
+signal smoke_source_added(source: Node3D, duration: float)
 ## A shot or blast hit something. `on_target` = it hit a hurtbox, not a wall.
 signal hit_landed(position: Vector3, normal: Vector3, damage_type: int, on_target: bool)
 
@@ -20,6 +33,8 @@ signal mission_started(mission_id: StringName)
 signal mission_completed(mission_id: StringName, stars: int)
 signal mission_failed(mission_id: StringName)
 signal wave_started(index: int)
+## Every droid of the wave is dead (the break before the next wave starts).
+signal wave_cleared(index: int)
 
 # --- Economy / progression ---
 signal scrap_collected(amount: int)

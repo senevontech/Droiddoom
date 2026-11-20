@@ -49,9 +49,9 @@ func compute_aim_target() -> Vector3:
 	return Vector3.ZERO
 
 
-## Aim assist settings for this mode (filled in by P1-11).
-func get_aim_assist_profile() -> Dictionary:
-	return {}
+## Aim assist half-angle for touch/gamepad in this mode (deg, 0 = none).
+func get_aim_assist_cone() -> float:
+	return 0.0
 
 
 ## True if the OS mouse cursor should be visible in this mode.

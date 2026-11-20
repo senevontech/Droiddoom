@@ -17,6 +17,9 @@ var crit: bool = false
 var knockback: Vector3 = Vector3.ZERO
 ## Where the hit landed (world space). Used for impact VFX and damage numbers.
 var hit_position: Vector3 = Vector3.ZERO
+## Physical shove of the hit (world space, m/s). Wrecks fly along it when the
+## hit kills (DebrisSystem); hit flinches lean along it.
+var impulse: Vector3 = Vector3.ZERO
 
 
 ## Convenience constructor.

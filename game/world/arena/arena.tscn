@@ -1,0 +1,46 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://world/arena/arena.gd" id="1_arena"]
+[ext_resource type="PackedScene" path="res://world/spike/street_sector.scn" id="2_street"]
+[ext_resource type="PackedScene" path="res://actors/player/hollow.tscn" id="3_hollow"]
+[ext_resource type="PackedScene" path="res://actors/player/camera/camera_rig.tscn" id="4_rig"]
+[ext_resource type="Script" path="res://weapons/fx/combat_fx.gd" id="5_fx"]
+[ext_resource type="Script" path="res://core/ai/enemy_coordinator.gd" id="6_coord"]
+[ext_resource type="Script" path="res://weapons/projectile_system.gd" id="7_proj"]
+[ext_resource type="Script" path="res://core/fx/debris_system.gd" id="8_debris"]
+[ext_resource type="Script" path="res://core/waves/wave_director.gd" id="9_director"]
+[ext_resource type="Resource" path="res://data/waves/waves_arena.tres" id="10_waves"]
+[ext_resource type="PackedScene" path="res://ui/hud/hud.tscn" id="11_hud"]
+
+[node name="Arena" type="Node3D"]
+script = ExtResource("1_arena")
+
+[node name="Sector" parent="." instance=ExtResource("2_street")]
+
+[node name="Hollow" parent="." instance=ExtResource("3_hollow")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.2, 2)
+
+[node name="CameraRig" parent="." node_paths=PackedStringArray("target") instance=ExtResource("4_rig")]
+target = NodePath("../Hollow")
+tactical_yaw_deg = 90.0
+
+[node name="CombatFX" type="Node3D" parent="."]
+script = ExtResource("5_fx")
+
+[node name="EnemyCoordinator" type="Node" parent="."]
+script = ExtResource("6_coord")
+
+[node name="ProjectileSystem" type="Node3D" parent="."]
+script = ExtResource("7_proj")
+
+[node name="DebrisSystem" type="Node3D" parent="."]
+script = ExtResource("8_debris")
+
+[node name="Enemies" type="Node3D" parent="."]
+
+[node name="WaveDirector" type="Node" parent="." node_paths=PackedStringArray("spawn_parent")]
+script = ExtResource("9_director")
+wave_set = ExtResource("10_waves")
+spawn_parent = NodePath("../Enemies")
+
+[node name="Hud" parent="." instance=ExtResource("11_hud")]

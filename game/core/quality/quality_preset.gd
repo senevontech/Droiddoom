@@ -28,5 +28,19 @@ extends Resource
 @export var max_live_enemies: int = 40
 ## Cap for simultaneous dynamic lights (muzzle flashes, explosions).
 @export var max_dynamic_lights: int = 2
+## Physics bodies for droid wreck parts (DebrisSystem pool, D-031).
+@export var max_debris_bodies: int = 48
 ## Glow (bloom) on/off.
 @export var glow_enabled: bool = true
+
+@export_group("Enemy AI LOD")
+## Enemies closer than this to the player think at `ai_tick_hz_near` (m).
+@export var ai_near_distance: float = 15.0
+## Enemies closer than this (but past near) think at `ai_tick_hz_mid` (m).
+@export var ai_mid_distance: float = 35.0
+## AI decisions per second, near / mid / far. Movement still runs every frame.
+@export var ai_tick_hz_near: float = 20.0
+@export var ai_tick_hz_mid: float = 10.0
+@export var ai_tick_hz_far: float = 4.0
+## Navigation path queries allowed per physics frame (time slicing).
+@export var path_queries_per_frame: int = 6

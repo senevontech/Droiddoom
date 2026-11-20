@@ -33,7 +33,7 @@ jobs:
       - name: gdlint
         run: gdlint game
       - name: gdformat --check
-        run: gdformat --check game/autoload game/core game/actors game/world game/tests
+        run: gdformat --check game/autoload game/core game/actors game/world game/tests game/weapons game/ui
 
   test:
     name: Godot headless tests

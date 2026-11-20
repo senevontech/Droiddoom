@@ -6,6 +6,9 @@
 [ext_resource type="PackedScene" path="res://actors/player/camera/camera_rig.tscn" id="4_rig"]
 [ext_resource type="Script" path="res://weapons/fx/combat_fx.gd" id="5_fx"]
 [ext_resource type="Script" path="res://world/dev/playground/target_dummy.gd" id="6_dummy"]
+[ext_resource type="Script" path="res://core/ai/enemy_coordinator.gd" id="7_coord"]
+[ext_resource type="Script" path="res://weapons/projectile_system.gd" id="8_proj"]
+[ext_resource type="Script" path="res://core/fx/debris_system.gd" id="9_debris"]
 
 [node name="Playground" type="Node3D"]
 script = ExtResource("1_pg")
@@ -21,6 +24,17 @@ tactical_yaw_deg = 90.0
 
 [node name="CombatFX" type="Node3D" parent="."]
 script = ExtResource("5_fx")
+
+[node name="EnemyCoordinator" type="Node" parent="."]
+script = ExtResource("7_coord")
+
+[node name="ProjectileSystem" type="Node3D" parent="."]
+script = ExtResource("8_proj")
+
+[node name="DebrisSystem" type="Node3D" parent="."]
+script = ExtResource("9_debris")
+
+[node name="Enemies" type="Node3D" parent="."]
 
 [node name="Dummies" type="Node3D" parent="."]
 
@@ -64,13 +78,26 @@ theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 4
 theme_override_font_sizes/font_size = 14
 
+[node name="Weapons" type="Label" parent="HUD"]
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 12.0
+offset_top = -62.0
+offset_right = 900.0
+offset_bottom = -36.0
+theme_override_colors/font_color = Color(1, 0.85, 0.5, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 5
+theme_override_font_sizes/font_size = 18
+
 [node name="Hint" type="Label" parent="HUD"]
 anchors_preset = 2
 anchor_top = 1.0
 anchor_bottom = 1.0
 offset_left = 12.0
 offset_top = -30.0
-offset_right = 600.0
+offset_right = 900.0
 offset_bottom = -8.0
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 4

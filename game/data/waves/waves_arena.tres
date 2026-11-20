@@ -1,0 +1,71 @@
+[gd_resource type="Resource" script_class="WaveSet" format=3]
+
+[ext_resource type="Script" path="res://core/waves/wave_set.gd" id="1_set"]
+[ext_resource type="Script" path="res://core/waves/wave_data.gd" id="2_wave"]
+[ext_resource type="Script" path="res://core/waves/enemy_entry.gd" id="3_entry"]
+[ext_resource type="PackedScene" path="res://actors/enemies/swarmer/swarmer.tscn" id="4_swarmer"]
+[ext_resource type="PackedScene" path="res://actors/enemies/kamikaze/kamikaze.tscn" id="5_kamikaze"]
+[ext_resource type="PackedScene" path="res://actors/enemies/gunner/gunner.tscn" id="6_gunner"]
+
+[sub_resource type="Resource" id="entry_swarmer"]
+script = ExtResource("3_entry")
+scene = ExtResource("4_swarmer")
+cost = 1
+weight = 3.0
+
+[sub_resource type="Resource" id="entry_kamikaze"]
+script = ExtResource("3_entry")
+scene = ExtResource("5_kamikaze")
+cost = 2
+weight = 1.2
+
+[sub_resource type="Resource" id="entry_gunner"]
+script = ExtResource("3_entry")
+scene = ExtResource("6_gunner")
+cost = 3
+weight = 1.0
+
+[sub_resource type="Resource" id="wave_1"]
+script = ExtResource("2_wave")
+budget = 6
+pool = Array[ExtResource("3_entry")]([SubResource("entry_swarmer")])
+burst_size = 3
+burst_interval = 2.5
+
+[sub_resource type="Resource" id="wave_2"]
+script = ExtResource("2_wave")
+budget = 10
+pool = Array[ExtResource("3_entry")]([SubResource("entry_swarmer"), SubResource("entry_kamikaze")])
+burst_size = 3
+burst_interval = 2.2
+
+[sub_resource type="Resource" id="wave_3"]
+script = ExtResource("2_wave")
+budget = 14
+pool = Array[ExtResource("3_entry")]([SubResource("entry_swarmer"), SubResource("entry_gunner")])
+burst_size = 3
+burst_interval = 2.0
+
+[sub_resource type="Resource" id="wave_4"]
+script = ExtResource("2_wave")
+budget = 20
+pool = Array[ExtResource("3_entry")]([SubResource("entry_swarmer"), SubResource("entry_kamikaze"), SubResource("entry_gunner")])
+burst_size = 4
+burst_interval = 1.8
+
+[sub_resource type="Resource" id="wave_5"]
+script = ExtResource("2_wave")
+budget = 28
+pool = Array[ExtResource("3_entry")]([SubResource("entry_swarmer"), SubResource("entry_kamikaze"), SubResource("entry_gunner")])
+burst_size = 4
+burst_interval = 1.6
+
+[resource]
+script = ExtResource("1_set")
+waves = Array[ExtResource("2_wave")]([SubResource("wave_1"), SubResource("wave_2"), SubResource("wave_3"), SubResource("wave_4"), SubResource("wave_5")])
+endless_growth = 1.2
+first_delay = 3.0
+break_time = 6.0
+repair_on_clear = 0.35
+refill_ammo_on_clear = true
+min_spawn_distance = 14.0

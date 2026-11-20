@@ -17,3 +17,19 @@ extends Resource
 @export var leg_turn_speed: float = 10.0
 ## Maximum hit points.
 @export var max_hp: float = 100.0
+
+@export_group("Dash")
+## Burst speed while dashing (m/s).
+@export var dash_speed: float = 16.0
+## Length of the burst (s).
+@export var dash_time: float = 0.18
+## Invulnerable time from the start of the dash (s). Slightly longer than the
+## burst so a hit that lands as the dash ends still misses.
+@export var dash_iframes: float = 0.24
+## Seconds from one dash start to the next.
+@export var dash_cooldown: float = 0.8
+
+@export_group("Neural Sync")
+## A dash counts as perfect if a hit would have landed within this many
+## seconds of the dash starting (GDD §4.4).
+@export var neural_sync_window: float = 0.2

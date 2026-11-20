@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="WeaponData" format=3]
+
+[ext_resource type="Script" path="res://weapons/weapon_data.gd" id="1_wd"]
+[ext_resource type="Resource" path="res://data/projectiles/projectile_rail_slug.tres" id="2_proj"]
+
+[resource]
+script = ExtResource("1_wd")
+projectile = ExtResource("2_proj")
+name_key = "WEAPON_RAILGUN"
+fire_mode = 0
+damage = 75.0
+damage_type = 0
+fire_interval = 1.1
+pellets = 1
+max_range = 120.0
+spread_deg = 0.0
+crit_chance = 0.1
+crit_multiplier = 2.0
+knockback = 3.0
+impact_force = 9.0
+magazine_size = 4
+reload_time = 2.0
+reserve_ammo = -1
+noise_radius = 40.0
+recoil = 2.5
+muzzle_flash_size = 0.5

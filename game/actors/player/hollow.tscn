@@ -4,8 +4,13 @@
 [ext_resource type="Resource" path="res://data/player/player_stats_hollow.tres" id="2_stats"]
 [ext_resource type="Script" path="res://core/combat/health_component.gd" id="6_health"]
 [ext_resource type="Script" path="res://core/combat/hurtbox_component.gd" id="7_hurtbox"]
-[ext_resource type="Script" path="res://weapons/weapon.gd" id="8_weapon"]
+[ext_resource type="Script" path="res://weapons/weapon_data.gd" id="8_wd"]
 [ext_resource type="Resource" path="res://data/weapons/weapon_pulse_rifle.tres" id="9_rifle"]
+[ext_resource type="Resource" path="res://data/weapons/weapon_scattergun.tres" id="10_scatter"]
+[ext_resource type="Resource" path="res://data/weapons/weapon_beam_laser.tres" id="11_laser"]
+[ext_resource type="Resource" path="res://data/weapons/weapon_railgun.tres" id="12_rail"]
+[ext_resource type="Resource" path="res://data/weapons/weapon_rocket_pod.tres" id="13_rocket"]
+[ext_resource type="Resource" path="res://data/weapons/weapon_grenade_launcher.tres" id="14_grenade"]
 [ext_resource type="Texture2D" path="res://assets/textures/pbr/metal_plate/metal_plate_diff_1k.jpg" id="3_diff"]
 [ext_resource type="Texture2D" path="res://assets/textures/pbr/metal_plate/metal_plate_nor_gl_1k.jpg" id="4_nor"]
 [ext_resource type="Texture2D" path="res://assets/textures/pbr/metal_plate/metal_plate_arm_1k.jpg" id="5_arm"]
@@ -83,6 +88,8 @@ collision_layer = 2
 collision_mask = 9
 script = ExtResource("1_hollow")
 stats = ExtResource("2_stats")
+primary_loadout = Array[ExtResource("8_wd")]([ExtResource("9_rifle"), ExtResource("10_scatter"), ExtResource("11_laser"), ExtResource("12_rail")])
+heavy_loadout = Array[ExtResource("8_wd")]([ExtResource("13_rocket"), ExtResource("14_grenade")])
 
 [node name="Collision" type="CollisionShape3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.95, 0)
@@ -189,8 +196,3 @@ health = NodePath("../Health")
 [node name="Shape" type="CollisionShape3D" parent="Hurtbox"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
 shape = SubResource("shape_hurt")
-
-[node name="PrimaryWeapon" type="Node3D" parent="Turret/Muzzle"]
-script = ExtResource("8_weapon")
-data = ExtResource("9_rifle")
-target_mask = 8

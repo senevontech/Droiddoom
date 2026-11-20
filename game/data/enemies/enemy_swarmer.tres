@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="EnemyData" format=3]
+
+[ext_resource type="Script" path="res://actors/enemies/enemy_data.gd" id="1_ed"]
+
+[resource]
+script = ExtResource("1_ed")
+id = &"swarmer"
+name_key = "ENEMY_SWARMER"
+max_hp = 14.0
+move_speed = 6.5
+acceleration = 35.0
+turn_speed = 12.0
+separation_radius = 1.3
+separation_strength = 3.5
+sight_range = 25.0
+lose_range = 45.0
+alert_radius = 15.0
+hearing = 1.2
+repath_interval = 0.4
+repath_distance = 1.2
+attack_range = 1.3
+stop_distance = 0.9
+attack_windup = 0.25
+attack_interval = 0.6
+attack_damage = 4.0
+attack_damage_type = 0
+attack_knockback = 2.0
+scrap_value = 2
+cripple_ratio = 0.0
+flinch_per_impulse = 0.09
+wreck_time = 8.0

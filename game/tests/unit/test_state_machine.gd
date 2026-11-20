@@ -73,3 +73,19 @@ func test_transition_requested_inside_update() -> void:
 	_machine.update(0.1)
 	assert_eq(_chase.ticks, 1, "only the new state ticks next time")
 	assert_eq(_idle.ticks, 1)
+
+
+func test_machine_and_states_are_freed_when_dropped() -> void:
+	# Regression (P1-08): State -> machine was a strong reference, a RefCounted
+	# cycle that leaked one brain per dead enemy.
+	var machine: StateMachine = StateMachine.new()
+	var state: State = State.new()
+	machine.add(&"a", state)
+	machine.start(&"a")
+	assert_eq(state.machine, machine, "the state still reaches its machine")
+	var machine_ref: WeakRef = weakref(machine)
+	var state_ref: WeakRef = weakref(state)
+	machine = null
+	state = null
+	assert_null(machine_ref.get_ref(), "machine freed")
+	assert_null(state_ref.get_ref(), "state freed")

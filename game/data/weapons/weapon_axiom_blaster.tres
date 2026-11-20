@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="WeaponData" format=3]
+
+[ext_resource type="Script" path="res://weapons/weapon_data.gd" id="1_wd"]
+[ext_resource type="Resource" path="res://data/projectiles/projectile_axiom_bolt.tres" id="2_proj"]
+
+[resource]
+script = ExtResource("1_wd")
+projectile = ExtResource("2_proj")
+name_key = "WEAPON_AXIOM_BLASTER"
+fire_mode = 0
+damage = 6.0
+damage_type = 1
+fire_interval = 0.1
+pellets = 1
+max_range = 40.0
+spread_deg = 2.5
+crit_chance = 0.0
+crit_multiplier = 1.0
+knockback = 1.5
+impact_force = 1.5
+magazine_size = 0
+reserve_ammo = -1
+noise_radius = 0.0
+muzzle_flash_size = 0.3

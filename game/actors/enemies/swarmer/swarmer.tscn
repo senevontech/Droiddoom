@@ -1,0 +1,151 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://actors/enemies/base_enemy.gd" id="1_script"]
+[ext_resource type="Resource" path="res://data/enemies/enemy_swarmer.tres" id="2_data"]
+[ext_resource type="Script" path="res://core/combat/health_component.gd" id="3_hp"]
+[ext_resource type="Script" path="res://core/combat/hurtbox_component.gd" id="4_hurt"]
+[ext_resource type="Script" path="res://core/combat/hitbox_component.gd" id="5_hit"]
+
+[sub_resource type="StandardMaterial3D" id="mat_hull"]
+albedo_color = Color(0.2, 0.19, 0.18, 1)
+metallic = 0.75
+roughness = 0.4
+
+[sub_resource type="StandardMaterial3D" id="mat_joint"]
+albedo_color = Color(0.1, 0.1, 0.11, 1)
+metallic = 0.5
+roughness = 0.6
+
+[sub_resource type="StandardMaterial3D" id="mat_eye"]
+albedo_color = Color(0.4, 0.02, 0.04, 1)
+metallic = 0
+roughness = 0.5
+emission_enabled = true
+emission = Color(1, 0.06, 0.12, 1)
+emission_energy_multiplier = 5
+
+[sub_resource type="CapsuleShape3D" id="shape_body"]
+radius = 0.32
+height = 0.8
+
+[sub_resource type="BoxShape3D" id="shape_hurt"]
+size = Vector3(0.62, 0.6, 0.75)
+
+[sub_resource type="BoxShape3D" id="shape_optic"]
+size = Vector3(0.28, 0.12, 0.16)
+
+[sub_resource type="SphereShape3D" id="shape_attack"]
+radius = 0.7
+
+[sub_resource type="BoxMesh" id="mesh_body"]
+material = SubResource("mat_hull")
+size = Vector3(0.5, 0.28, 0.62)
+
+[sub_resource type="BoxMesh" id="mesh_head"]
+material = SubResource("mat_hull")
+size = Vector3(0.3, 0.18, 0.24)
+
+[sub_resource type="BoxMesh" id="mesh_eye"]
+material = SubResource("mat_eye")
+size = Vector3(0.22, 0.05, 0.03)
+
+[sub_resource type="BoxMesh" id="mesh_leg"]
+material = SubResource("mat_joint")
+size = Vector3(0.06, 0.06, 0.42)
+
+[sub_resource type="BoxMesh" id="mesh_fang"]
+material = SubResource("mat_joint")
+size = Vector3(0.05, 0.05, 0.22)
+
+[node name="Swarmer" type="CharacterBody3D"]
+collision_layer = 8
+collision_mask = 3
+script = ExtResource("1_script")
+data = ExtResource("2_data")
+
+[node name="Collision" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.4, 0)
+shape = SubResource("shape_body")
+
+[node name="Health" type="Node" parent="."]
+script = ExtResource("3_hp")
+
+[node name="Hurtbox" type="Area3D" parent="." node_paths=PackedStringArray("health")]
+collision_layer = 8
+collision_mask = 0
+script = ExtResource("4_hurt")
+health = NodePath("../Health")
+
+[node name="Shape" type="CollisionShape3D" parent="Hurtbox"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.38, 0)
+shape = SubResource("shape_hurt")
+
+[node name="OpticHurtbox" type="Area3D" parent="." node_paths=PackedStringArray("health")]
+collision_layer = 8
+collision_mask = 0
+script = ExtResource("4_hurt")
+health = NodePath("../Health")
+zone_multiplier = 1.75
+is_weak_spot = true
+
+[node name="Shape" type="CollisionShape3D" parent="OpticHurtbox"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, -0.45)
+shape = SubResource("shape_optic")
+
+[node name="AttackHitbox" type="Area3D" parent="."]
+collision_layer = 0
+collision_mask = 66
+script = ExtResource("5_hit")
+
+[node name="Shape" type="CollisionShape3D" parent="AttackHitbox"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, -0.7)
+shape = SubResource("shape_attack")
+
+[node name="Visuals" type="Node3D" parent="."]
+
+[node name="Body" type="MeshInstance3D" parent="Visuals"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.42, 0.02)
+mesh = SubResource("mesh_body")
+
+[node name="Head" type="MeshInstance3D" parent="Visuals"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.55, -0.32)
+mesh = SubResource("mesh_head")
+
+[node name="Telegraph" type="Node3D" parent="Visuals"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, -0.45)
+
+[node name="Eye" type="MeshInstance3D" parent="Visuals/Telegraph"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+mesh = SubResource("mesh_eye")
+
+[node name="LegL0" type="MeshInstance3D" parent="Visuals"]
+transform = Transform3D(0, 0, 1, 0.5736, 0.8192, 0, -0.8192, 0.5736, 0, -0.36, 0.25, -0.2)
+mesh = SubResource("mesh_leg")
+
+[node name="LegR0" type="MeshInstance3D" parent="Visuals"]
+transform = Transform3D(0, 0, -1, -0.5736, 0.8192, 0, 0.8192, 0.5736, 0, 0.36, 0.25, -0.2)
+mesh = SubResource("mesh_leg")
+
+[node name="LegL1" type="MeshInstance3D" parent="Visuals"]
+transform = Transform3D(0, 0, 1, 0.5736, 0.8192, 0, -0.8192, 0.5736, 0, -0.36, 0.25, 0.02)
+mesh = SubResource("mesh_leg")
+
+[node name="LegR1" type="MeshInstance3D" parent="Visuals"]
+transform = Transform3D(0, 0, -1, -0.5736, 0.8192, 0, 0.8192, 0.5736, 0, 0.36, 0.25, 0.02)
+mesh = SubResource("mesh_leg")
+
+[node name="LegL2" type="MeshInstance3D" parent="Visuals"]
+transform = Transform3D(0, 0, 1, 0.5736, 0.8192, 0, -0.8192, 0.5736, 0, -0.36, 0.25, 0.24)
+mesh = SubResource("mesh_leg")
+
+[node name="LegR2" type="MeshInstance3D" parent="Visuals"]
+transform = Transform3D(0, 0, -1, -0.5736, 0.8192, 0, 0.8192, 0.5736, 0, 0.36, 0.25, 0.24)
+mesh = SubResource("mesh_leg")
+
+[node name="FangL" type="MeshInstance3D" parent="Visuals"]
+transform = Transform3D(0.9781, 0, -0.2079, 0, 1, 0, 0.2079, 0, 0.9781, -0.09, 0.42, -0.5)
+mesh = SubResource("mesh_fang")
+
+[node name="FangR" type="MeshInstance3D" parent="Visuals"]
+transform = Transform3D(0.9781, 0, 0.2079, 0, 1, 0, -0.2079, 0, 0.9781, 0.09, 0.42, -0.5)
+mesh = SubResource("mesh_fang")

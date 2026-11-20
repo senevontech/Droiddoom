@@ -32,6 +32,8 @@ func update(delta: float) -> void:
 	var stick: Vector2 = InputRouter.get_stick_aim_vector()
 	var speed: float = rig.tuning.stick_look_speed * delta
 	_look(-stick.x * speed, -stick.y * speed)
+	var drag: Vector2 = InputRouter.consume_look_drag() * rig.tuning.touch_look_sensitivity
+	_look(-drag.x, -drag.y)
 	_transform = _compute_transform()
 
 
@@ -41,6 +43,10 @@ func get_desired_transform() -> Transform3D:
 
 func get_fov() -> float:
 	return rig.tuning.shoulder_fov
+
+
+func get_aim_assist_cone() -> float:
+	return rig.tuning.shoulder_assist_cone_deg
 
 
 func get_occlusion_radius() -> float:

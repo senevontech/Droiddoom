@@ -22,6 +22,8 @@ extends Resource
 @export var stick_aim_distance: float = 8.0
 ## Stick deflection below this keeps the last aim direction.
 @export var stick_deadzone: float = 0.25
+## Aim assist cone half-angle for touch/gamepad in Tactical (deg, 0 = off).
+@export var tactical_assist_cone_deg: float = 12.0
 
 @export_group("Shoulder")
 ## Point the camera orbits around, relative to the player's feet.
@@ -39,6 +41,10 @@ extends Resource
 @export var mouse_sensitivity: float = 0.0025
 ## Stick look: radians per second at full deflection.
 @export var stick_look_speed: float = 2.5
+## Touch drag-look turn per screen pixel (rad).
+@export var touch_look_sensitivity: float = 0.006
+## Aim assist cone half-angle for touch/gamepad in Shoulder (deg, 0 = off).
+@export var shoulder_assist_cone_deg: float = 5.0
 ## Occlusion fade radius around the camera→player line (m).
 @export var shoulder_occlusion_radius: float = 1.0
 ## Gap kept between the camera and a wall it is pulled in by (m).
@@ -53,3 +59,5 @@ extends Resource
 @export var occlusion_target_height: float = 1.1
 ## Height of the fallback aim plane above the player's feet (m).
 @export var aim_plane_height: float = 1.2
+## Aim assist only considers enemies this close (m).
+@export var assist_range: float = 30.0

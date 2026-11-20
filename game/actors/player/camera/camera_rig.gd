@@ -81,7 +81,7 @@ func _process(delta: float) -> void:
 		camera.fov = _active.get_fov()
 		_move_yaw = _active.get_move_yaw()
 		_occlusion_radius = _active.get_occlusion_radius()
-	aim_target = _active.compute_aim_target()
+	aim_target = _assist(_active.compute_aim_target())
 	_update_occlusion()
 
 
@@ -127,6 +127,27 @@ func _switch_to(mode: Settings.CameraMode, blend: bool) -> void:
 
 ## Feeds the kit shader (world/kits/common/kit_fade.gdshader): fade what is
 ## between the camera and the player.
+## Touch and gamepad aim snaps toward a nearby enemy (P1-11); mouse never.
+func _assist(aim: Vector3) -> Vector3:
+	if InputRouter.active_device == InputRouter.Device.KEYBOARD_MOUSE:
+		return aim
+	var coordinator: EnemyCoordinator = (
+		get_tree().get_first_node_in_group(EnemyCoordinator.GROUP) as EnemyCoordinator
+	)
+	if coordinator == null:
+		return aim
+	var origin: Vector3 = target.global_position + Vector3(0.0, tuning.aim_plane_height, 0.0)
+	return AimAssist.apply(
+		origin,
+		aim,
+		coordinator.get_live_enemies(),
+		_active.get_aim_assist_cone(),
+		tuning.assist_range,
+		func(from: Vector3, to: Vector3) -> bool:
+			return raycast(from, to, PhysicsLayers.WORLD).is_empty()
+	)
+
+
 func _update_occlusion() -> void:
 	var focus: Vector3 = target.global_position + Vector3(0.0, tuning.occlusion_target_height, 0.0)
 	RenderingServer.global_shader_parameter_set(&"occlusion_target", focus)

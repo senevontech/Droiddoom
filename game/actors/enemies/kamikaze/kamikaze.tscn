@@ -1,0 +1,145 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://actors/enemies/kamikaze/kamikaze_enemy.gd" id="1_script"]
+[ext_resource type="Resource" path="res://data/enemies/enemy_kamikaze.tres" id="2_data"]
+[ext_resource type="Script" path="res://core/combat/health_component.gd" id="3_hp"]
+[ext_resource type="Script" path="res://core/combat/hurtbox_component.gd" id="4_hurt"]
+
+[sub_resource type="StandardMaterial3D" id="mat_hull"]
+albedo_color = Color(0.22, 0.2, 0.17, 1)
+metallic = 0.8
+roughness = 0.35
+
+[sub_resource type="StandardMaterial3D" id="mat_joint"]
+albedo_color = Color(0.1, 0.1, 0.11, 1)
+metallic = 0.5
+roughness = 0.6
+
+[sub_resource type="StandardMaterial3D" id="mat_core"]
+albedo_color = Color(0.5, 0.25, 0.02, 1)
+metallic = 0
+roughness = 0.4
+emission_enabled = true
+emission = Color(1, 0.55, 0.05, 1)
+emission_energy_multiplier = 6
+
+[sub_resource type="StandardMaterial3D" id="mat_ring"]
+transparency = 1
+shading_mode = 0
+albedo_color = Color(1, 0.1, 0.05, 0.35)
+
+[sub_resource type="SphereShape3D" id="shape_body"]
+radius = 0.45
+
+[sub_resource type="SphereShape3D" id="shape_hurt"]
+radius = 0.5
+
+[sub_resource type="BoxShape3D" id="shape_optic"]
+size = Vector3(0.28, 0.28, 0.16)
+
+[sub_resource type="SphereMesh" id="mesh_shell"]
+material = SubResource("mat_hull")
+radius = 0.45
+height = 0.9
+radial_segments = 14
+rings = 7
+
+[sub_resource type="BoxMesh" id="mesh_spike"]
+material = SubResource("mat_joint")
+size = Vector3(0.08, 0.28, 0.08)
+
+[sub_resource type="SphereMesh" id="mesh_core"]
+material = SubResource("mat_core")
+radius = 0.14
+height = 0.28
+radial_segments = 10
+rings = 5
+
+[sub_resource type="CylinderMesh" id="mesh_ring"]
+material = SubResource("mat_ring")
+top_radius = 1
+bottom_radius = 1
+height = 0.02
+radial_segments = 32
+rings = 1
+
+[node name="Kamikaze" type="CharacterBody3D"]
+collision_layer = 8
+collision_mask = 3
+script = ExtResource("1_script")
+data = ExtResource("2_data")
+
+[node name="Collision" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, 0)
+shape = SubResource("shape_body")
+
+[node name="Health" type="Node" parent="."]
+script = ExtResource("3_hp")
+
+[node name="Hurtbox" type="Area3D" parent="." node_paths=PackedStringArray("health")]
+collision_layer = 8
+collision_mask = 0
+script = ExtResource("4_hurt")
+health = NodePath("../Health")
+
+[node name="Shape" type="CollisionShape3D" parent="Hurtbox"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, 0)
+shape = SubResource("shape_hurt")
+
+[node name="OpticHurtbox" type="Area3D" parent="." node_paths=PackedStringArray("health")]
+collision_layer = 8
+collision_mask = 0
+script = ExtResource("4_hurt")
+health = NodePath("../Health")
+zone_multiplier = 1.75
+is_weak_spot = true
+
+[node name="Shape" type="CollisionShape3D" parent="OpticHurtbox"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, -0.48)
+shape = SubResource("shape_optic")
+
+[node name="WarningRing" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.04, 0)
+mesh = SubResource("mesh_ring")
+cast_shadow = 0
+visible = false
+
+[node name="Visuals" type="Node3D" parent="."]
+
+[node name="Shell" type="Node3D" parent="Visuals"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, 0)
+
+[node name="Ball" type="MeshInstance3D" parent="Visuals/Shell"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+mesh = SubResource("mesh_shell")
+
+[node name="Spike0" type="MeshInstance3D" parent="Visuals/Shell"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.48, 0)
+mesh = SubResource("mesh_spike")
+
+[node name="Spike1" type="MeshInstance3D" parent="Visuals/Shell"]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0, 0.48)
+mesh = SubResource("mesh_spike")
+
+[node name="Spike2" type="MeshInstance3D" parent="Visuals/Shell"]
+transform = Transform3D(1, 0, 0, 0, -1, 0, 0, 0, -1, 0, -0.48, 0)
+mesh = SubResource("mesh_spike")
+
+[node name="Spike3" type="MeshInstance3D" parent="Visuals/Shell"]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0, 0, -0.48)
+mesh = SubResource("mesh_spike")
+
+[node name="Spike4" type="MeshInstance3D" parent="Visuals/Shell"]
+transform = Transform3D(0, 1, 0, -1, 0, 0, 0, 0, 1, -0.48, 0, 0)
+mesh = SubResource("mesh_spike")
+
+[node name="Spike5" type="MeshInstance3D" parent="Visuals/Shell"]
+transform = Transform3D(0, -1, 0, 1, 0, 0, 0, 0, 1, 0.48, 0, 0)
+mesh = SubResource("mesh_spike")
+
+[node name="Telegraph" type="Node3D" parent="Visuals"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, -0.4)
+
+[node name="Core" type="MeshInstance3D" parent="Visuals/Telegraph"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+mesh = SubResource("mesh_core")

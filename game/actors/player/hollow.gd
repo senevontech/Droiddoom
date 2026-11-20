@@ -4,32 +4,76 @@ extends CharacterBody3D
 ## acceleration and friction. The legs turn toward the move direction, the
 ## turret (upper body) turns toward the aim independently. Move and aim come
 ## from InputRouter only, so this works the same in every camera mode.
+## Weapons: primaries (fire_primary, slots 1–4 / cycle) and heavies
+## (fire_heavy, cycle), built from the loadout data at spawn (D-030).
+## Dash (ability): burst + i-frames + cooldown, with Neural Sync detection.
+
+## The equipped weapons changed (HUD listens).
+signal weapons_changed(primary: Weapon, heavy: Weapon)
+## A dash started (P1-12). `perfect` = it dodged a hit about to land (Neural Sync).
+signal dashed(direction: Vector3, perfect: bool)
+
+## Enemies find the player through this group (BaseEnemy.TARGET_GROUP).
+const PLAYER_GROUP: StringName = &"player"
+## Seconds HOLLOW's wreck lies around after death.
+const WRECK_TIME: float = 30.0
 
 @export var stats: PlayerStats
+## Primary weapons in slot order (slot 1 is equipped at spawn).
+@export var primary_loadout: Array[WeaponData] = []
+## Heavy weapons (limited ammo), cycled with heavy_next.
+@export var heavy_loadout: Array[WeaponData] = []
+
+## Equipped primary weapon (null if the loadout is empty).
+var weapon: Weapon
+## Equipped heavy weapon (null if the loadout is empty).
+var heavy_weapon: Weapon
+
+## Dash timing, i-frames and cooldown (P1-12).
+var dash: DashMotor = DashMotor.new()
+
+var _dash_requested: bool = false
+var _primaries: Array[Weapon] = []
+var _heavies: Array[Weapon] = []
 
 ## Player health. Max comes from `stats.max_hp`.
 @onready var health: HealthComponent = $Health
-## Primary gun (Pulse Rifle by default).
-@onready var weapon: Weapon = $Turret/Muzzle/PrimaryWeapon
 @onready var _legs: Node3D = $Legs
 @onready var _turret: Node3D = $Turret
 @onready var _muzzle: Marker3D = $Turret/Muzzle
 
 
 func _ready() -> void:
+	add_to_group(PLAYER_GROUP)
 	health.max_health = stats.max_hp
 	health.reset()
+	dash.configure(stats)
 	health.damaged.connect(_on_damaged)
 	health.died.connect(_on_died)
-	weapon.wielder = self
-	weapon.set_exclude([get_rid()])
+	for data: WeaponData in primary_loadout:
+		_primaries.append(_mount_weapon(data))
+	for data: WeaponData in heavy_loadout:
+		_heavies.append(_mount_weapon(data))
+	weapon = _primaries[0] if not _primaries.is_empty() else null
+	heavy_weapon = _heavies[0] if not _heavies.is_empty() else null
 
 
 func _physics_process(delta: float) -> void:
+	if health.is_dead():
+		return
+	dash.update(delta)
+	if _dash_requested:
+		_dash_requested = false
+		try_dash()
+	health.invulnerable = dash.is_invulnerable()
 	var wish: Vector3 = InputRouter.get_move_vector_world() * stats.move_speed
-	var flat: Vector3 = step_velocity(
-		Vector3(velocity.x, 0.0, velocity.z), wish, stats.acceleration, stats.friction, delta
-	)
+	var flat: Vector3
+	if dash.is_dashing():
+		flat = dash.get_velocity()
+	else:
+		flat = step_velocity(
+			Vector3(velocity.x, 0.0, velocity.z), wish, stats.acceleration, stats.friction, delta
+		)
 	velocity.x = flat.x
 	velocity.z = flat.z
 	if is_on_floor():
@@ -51,8 +95,76 @@ func _process(delta: float) -> void:
 		_turret.rotation.y = rotate_angle_toward(
 			_turret.rotation.y, aim_yaw, stats.turret_turn_speed * delta
 		)
-	if InputRouter.is_primary_fire_held() and not health.is_dead():
-		weapon.try_fire(get_muzzle_position(), InputRouter.get_aim_target())
+	if health.is_dead():
+		return
+	# Latched here: a one-frame tap (touch DASH) can fall between physics steps.
+	if InputRouter.is_dash_pressed():
+		_dash_requested = true
+	_handle_weapon_input()
+	var aim: Vector3 = InputRouter.get_aim_target()
+	if InputRouter.is_primary_fire_held() and weapon != null:
+		weapon.try_fire(get_muzzle_position(), aim)
+	if InputRouter.is_heavy_fire_held() and heavy_weapon != null:
+		heavy_weapon.try_fire(get_muzzle_position(), aim)
+
+
+## Dashes along the move input (or the turret's facing with no input). Checks
+## for Neural Sync: hits that would have landed within the sync window.
+## Returns false if the dash is on cooldown.
+func try_dash() -> bool:
+	var dir: Vector3 = InputRouter.get_move_vector_world()
+	if dir.length() < 0.2:
+		dir = get_turret_forward()
+	if not dash.start(dir):
+		return false
+	health.invulnerable = true
+	_legs.rotation.y = atan2(-dash.direction.x, -dash.direction.z)
+	var threats: int = NeuralSync.count_threats(self, stats.neural_sync_window)
+	EventBus.player_dashed.emit(dash.direction)
+	if threats > 0:
+		EventBus.neural_sync_triggered.emit(threats)
+	dashed.emit(dash.direction, threats > 0)
+	return true
+
+
+## Equips primary weapon `index` (wraps around). A reload in progress is lost.
+func select_primary(index: int) -> void:
+	if _primaries.is_empty():
+		return
+	var next: Weapon = _primaries[wrapi(index, 0, _primaries.size())]
+	if next == weapon:
+		return
+	weapon.cancel_reload()
+	weapon = next
+	weapons_changed.emit(weapon, heavy_weapon)
+
+
+## Equips heavy weapon `index` (wraps around).
+func select_heavy(index: int) -> void:
+	if _heavies.is_empty():
+		return
+	var next: Weapon = _heavies[wrapi(index, 0, _heavies.size())]
+	if next == heavy_weapon:
+		return
+	heavy_weapon.cancel_reload()
+	heavy_weapon = next
+	weapons_changed.emit(weapon, heavy_weapon)
+
+
+## All primary weapons in slot order.
+func get_primaries() -> Array[Weapon]:
+	return _primaries
+
+
+## All heavy weapons.
+func get_heavies() -> Array[Weapon]:
+	return _heavies
+
+
+## Full ammo for every weapon (pickups and checkpoints later; dev wave reset now).
+func refill_ammo() -> void:
+	for w: Weapon in _primaries + _heavies:
+		w.refill()
 
 
 ## Takes knockback from a hit (horizontal push, m/s).
@@ -94,5 +206,49 @@ func _on_damaged(info: DamageInfo, final_amount: float) -> void:
 	EventBus.player_damaged.emit(final_amount, info.type)
 
 
-func _on_died(_info: DamageInfo) -> void:
+func _on_died(info: DamageInfo) -> void:
+	dash.cancel()
+	# The wreck no longer blocks or can be hit; droids lose their target.
+	collision_layer = 0
+	for child: Node in get_children():
+		var hurtbox: HurtboxComponent = child as HurtboxComponent
+		if hurtbox != null:
+			hurtbox.collision_layer = 0
+	# Break apart like the droids do (D-031); legs and turret are separate parts.
+	var push: Vector3 = info.impulse if info.impulse != Vector3.ZERO else info.knockback
+	var debris: DebrisSystem = DebrisSystem.find_or_create(self)
+	debris.shatter(_legs, push, velocity, WRECK_TIME)
+	debris.shatter(_turret, push, velocity, WRECK_TIME)
+	velocity = Vector3.ZERO
 	EventBus.player_died.emit()
+
+
+func _handle_weapon_input() -> void:
+	var slot: int = InputRouter.get_weapon_slot_pressed()
+	if slot >= 0 and slot < _primaries.size():
+		select_primary(slot)
+	var cycle: int = InputRouter.get_weapon_cycle()
+	if cycle != 0:
+		select_primary(_primaries.find(weapon) + cycle)
+	if InputRouter.is_heavy_cycle_pressed():
+		select_heavy(_heavies.find(heavy_weapon) + 1)
+	if InputRouter.is_reload_pressed() and weapon != null:
+		weapon.start_reload()
+
+
+func _mount_weapon(data: WeaponData) -> Weapon:
+	var gun: Weapon = Weapon.new()
+	gun.name = data.name_key.to_pascal_case()
+	# A runtime copy: upgrades change it, never the file.
+	gun.data = data.duplicate()
+	gun.target_mask = PhysicsLayers.ENEMIES
+	gun.wielder = self
+	_muzzle.add_child(gun)
+	gun.set_exclude([get_rid()])
+	gun.fired.connect(_on_weapon_fired.bind(gun))
+	return gun
+
+
+func _on_weapon_fired(_from: Vector3, direction: Vector3, gun: Weapon) -> void:
+	if gun.data.recoil > 0.0:
+		apply_knockback(-Vector3(direction.x, 0.0, direction.z).normalized() * gun.data.recoil)

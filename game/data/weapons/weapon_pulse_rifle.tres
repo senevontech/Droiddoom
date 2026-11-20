@@ -1,15 +1,25 @@
 [gd_resource type="Resource" script_class="WeaponData" format=3]
 
 [ext_resource type="Script" path="res://weapons/weapon_data.gd" id="1_wd"]
+[ext_resource type="Resource" path="res://data/projectiles/projectile_rifle_round.tres" id="2_proj"]
 
 [resource]
 script = ExtResource("1_wd")
+projectile = ExtResource("2_proj")
 name_key = "WEAPON_PULSE_RIFLE"
+fire_mode = 0
 damage = 12.0
 damage_type = 0
 fire_interval = 0.12
-max_range = 60.0
+pellets = 1
+max_range = 70.0
 spread_deg = 1.2
 crit_chance = 0.05
 crit_multiplier = 2.0
 knockback = 0.0
+impact_force = 2.5
+magazine_size = 32
+reload_time = 1.6
+reserve_ammo = -1
+noise_radius = 28.0
+muzzle_flash_size = 0.35

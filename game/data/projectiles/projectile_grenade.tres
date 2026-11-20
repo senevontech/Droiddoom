@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="ProjectileData" format=3]
+
+[ext_resource type="Script" path="res://weapons/projectile_data.gd" id="1_pd"]
+
+[resource]
+script = ExtResource("1_pd")
+visual = 3
+streak_length = 0.0
+speed = 20.0
+gravity_scale = 1.0
+drag = 0.05
+lifetime = 3.0
+lob = true
+bounce_restitution = 0.45
+fuse_time = 1.4
+explosion_radius = 4.0
+explosion_damage = 80.0
+explosion_force = 13.0

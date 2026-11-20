@@ -7,13 +7,28 @@ extends Node
 
 enum Device { KEYBOARD_MOUSE, GAMEPAD, TOUCH }
 
+const WEAPON_SLOT_ACTIONS: Array[StringName] = [
+	&"weapon_slot_1", &"weapon_slot_2", &"weapon_slot_3", &"weapon_slot_4"
+]
+
 ## Device that produced the most recent meaningful input.
 var active_device: Device = Device.KEYBOARD_MOUSE
 
 var _rig: CameraRig
+## Touch drag-look accumulated since the camera last read it (pixels).
+var _look_drag: Vector2 = Vector2.ZERO
+
+
+func _ready() -> void:
+	# Phones and tablets (native or mobile browsers) start in touch mode.
+	if OS.has_feature("mobile") or OS.has_feature("web_android") or OS.has_feature("web_ios"):
+		active_device = Device.TOUCH
 
 
 func _input(event: InputEvent) -> void:
+	# Mouse events Godot emulates from touches must not switch to mouse mode.
+	if event.device == InputEvent.DEVICE_ID_EMULATION:
+		return
 	var device: Device = active_device
 	if event is InputEventScreenTouch or event is InputEventScreenDrag:
 		device = Device.TOUCH
@@ -61,6 +76,56 @@ func get_stick_aim_vector() -> Vector2:
 ## True while the primary fire input is held (touch auto-fire comes in P1-11).
 func is_primary_fire_held() -> bool:
 	return Input.is_action_pressed(&"fire_primary")
+
+
+## True while the heavy weapon fire input is held.
+func is_heavy_fire_held() -> bool:
+	return Input.is_action_pressed(&"fire_heavy")
+
+
+## Primary weapon slot picked this frame (0-based), or -1.
+func get_weapon_slot_pressed() -> int:
+	for i in WEAPON_SLOT_ACTIONS.size():
+		if Input.is_action_just_pressed(WEAPON_SLOT_ACTIONS[i]):
+			return i
+	return -1
+
+
+## +1 / -1 when the player cycles the primary weapon this frame, else 0.
+func get_weapon_cycle() -> int:
+	if Input.is_action_just_pressed(&"weapon_next"):
+		return 1
+	if Input.is_action_just_pressed(&"weapon_prev"):
+		return -1
+	return 0
+
+
+## True on the frame the player cycles the heavy weapon.
+func is_heavy_cycle_pressed() -> bool:
+	return Input.is_action_just_pressed(&"heavy_next")
+
+
+## True on the frame the player asks for a dash (ability: Space/Shift, A/RB,
+## touch DASH).
+func is_dash_pressed() -> bool:
+	return Input.is_action_just_pressed(&"ability")
+
+
+## True on the frame the player asks for a reload.
+func is_reload_pressed() -> bool:
+	return Input.is_action_just_pressed(&"reload")
+
+
+## Touch controls add drag-look here (pixels); the Shoulder camera reads it.
+func add_look_drag(pixels: Vector2) -> void:
+	_look_drag += pixels
+
+
+## Returns the drag-look since the last call and clears it.
+func consume_look_drag() -> Vector2:
+	var drag: Vector2 = _look_drag
+	_look_drag = Vector2.ZERO
+	return drag
 
 
 ## World-space point the player is aiming at. `Vector3.ZERO` with no camera rig.

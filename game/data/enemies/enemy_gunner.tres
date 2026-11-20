@@ -1,0 +1,35 @@
+[gd_resource type="Resource" script_class="EnemyData" format=3]
+
+[ext_resource type="Script" path="res://actors/enemies/enemy_data.gd" id="1_ed"]
+
+[resource]
+script = ExtResource("1_ed")
+id = &"gunner"
+name_key = "ENEMY_GUNNER"
+max_hp = 50.0
+move_speed = 3.2
+acceleration = 18.0
+turn_speed = 6.0
+separation_radius = 1.8
+separation_strength = 2.5
+retreat_distance = 5.0
+sight_range = 30.0
+lose_range = 50.0
+alert_radius = 15.0
+hearing = 1.0
+repath_interval = 0.6
+repath_distance = 2.0
+attack_range = 16.0
+stop_distance = 10.0
+attack_windup = 0.55
+attack_interval = 1.4
+attack_damage = 0.0
+attack_damage_type = 1
+attack_knockback = 0.0
+needs_line_of_sight = true
+attack_burst = 3
+attack_burst_gap = 0.14
+scrap_value = 5
+cripple_ratio = 0.35
+flinch_per_impulse = 0.05
+wreck_time = 10.0

@@ -37,6 +37,10 @@ func get_move_yaw() -> float:
 	return deg_to_rad(rig.tactical_yaw_deg)
 
 
+func get_aim_assist_cone() -> float:
+	return rig.tuning.tactical_assist_cone_deg
+
+
 func compute_aim_target() -> Vector3:
 	var t: CameraTuning = rig.tuning
 	var origin: Vector3 = rig.target.global_position

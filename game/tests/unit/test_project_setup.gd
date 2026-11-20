@@ -18,6 +18,14 @@ const REQUIRED_ACTIONS: Array[StringName] = [
 	&"switch_camera",
 	&"pause",
 	&"toggle_debug",
+	&"weapon_next",
+	&"weapon_prev",
+	&"weapon_slot_1",
+	&"weapon_slot_2",
+	&"weapon_slot_3",
+	&"weapon_slot_4",
+	&"heavy_next",
+	&"reload",
 ]
 
 const REQUIRED_LAYERS: Dictionary = {

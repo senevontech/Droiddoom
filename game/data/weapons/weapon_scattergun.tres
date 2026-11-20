@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="WeaponData" format=3]
+
+[ext_resource type="Script" path="res://weapons/weapon_data.gd" id="1_wd"]
+[ext_resource type="Resource" path="res://data/projectiles/projectile_pellet.tres" id="2_proj"]
+
+[resource]
+script = ExtResource("1_wd")
+projectile = ExtResource("2_proj")
+name_key = "WEAPON_SCATTERGUN"
+fire_mode = 0
+damage = 7.0
+damage_type = 0
+fire_interval = 0.75
+pellets = 8
+max_range = 28.0
+spread_deg = 6.0
+crit_chance = 0.03
+crit_multiplier = 2.0
+knockback = 0.8
+impact_force = 1.4
+magazine_size = 6
+reload_time = 2.2
+reserve_ammo = -1
+noise_radius = 32.0
+recoil = 1.4
+muzzle_flash_size = 0.6

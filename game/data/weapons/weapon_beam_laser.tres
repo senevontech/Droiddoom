@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="WeaponData" format=3]
+
+[ext_resource type="Script" path="res://weapons/weapon_data.gd" id="1_wd"]
+
+[resource]
+script = ExtResource("1_wd")
+name_key = "WEAPON_BEAM_LASER"
+fire_mode = 1
+damage = 4.5
+damage_type = 1
+fire_interval = 0.05
+pellets = 1
+max_range = 45.0
+spread_deg = 0.0
+crit_chance = 0.0
+crit_multiplier = 1.0
+knockback = 0.0
+impact_force = 0.4
+magazine_size = 60
+reload_time = 1.4
+reserve_ammo = -1
+noise_radius = 12.0
+muzzle_flash_size = 0.15
+beam_width = 0.06
