@@ -23,4 +23,5 @@ reload_time = 3.0
 reserve_ammo = 24
 noise_radius = 25.0
 recoil = 0.4
-muzzle_flash_size = 0.4
+fire_sfx = &"shot_grenade"
+0.4

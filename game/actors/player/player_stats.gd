@@ -33,3 +33,12 @@ extends Resource
 ## A dash counts as perfect if a hit would have landed within this many
 ## seconds of the dash starting (GDD §4.4).
 @export var neural_sync_window: float = 0.2
+## Reward length in real seconds (GDD §4.4: 1.5 s). Another perfect dash extends it.
+@export var neural_sync_duration: float = 1.5
+## World speed during the reward (Engine.time_scale).
+@export_range(0.05, 1.0, 0.05) var neural_sync_time_scale: float = 0.35
+## Damage multiplier for HOLLOW's weapons during the reward.
+@export var neural_sync_damage_bonus: float = 1.5
+## How much of its real-time speed HOLLOW keeps while the world is slowed
+## (moving and firing): 0 = slowed like everything else, 1 = full speed.
+@export_range(0.0, 1.0, 0.05) var neural_sync_haste: float = 0.7

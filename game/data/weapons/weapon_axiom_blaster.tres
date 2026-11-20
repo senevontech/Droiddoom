@@ -21,4 +21,5 @@ impact_force = 1.5
 magazine_size = 0
 reserve_ammo = -1
 noise_radius = 0.0
-muzzle_flash_size = 0.3
+fire_sfx = &"shot_bolt"
+0.3

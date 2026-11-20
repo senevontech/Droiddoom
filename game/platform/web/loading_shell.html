@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0">
+		<meta name="theme-color" content="#06080a">
+		<title>$GODOT_PROJECT_NAME</title>
+		<!--
+			Droidoom web loading screen ("AXIOM terminal", 2026-11-20).
+			Custom HTML shell for the Web export (export preset: html/custom_html_shell).
+			The engine start-up logic is Godot 4.7's default shell, unchanged; only the
+			loading overlay (#status) is ours. No external files or fonts: everything is
+			inline, so it adds about 10 KB and shows instantly.
+		-->
+		<style>
+:root {
+	--bg: #06080a;
+	--red: #ff2a3a;
+	--red-dim: #6e1219;
+	--cyan: #39d8ff;
+	--text: #c9d3da;
+	--muted: #6b7882;
+	--mono: ui-monospace, "Cascadia Mono", Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+html, body, #canvas {
+	margin: 0;
+	padding: 0;
+	border: 0;
+}
+
+body {
+	color: var(--text);
+	background-color: var(--bg);
+	overflow: hidden;
+	touch-action: none;
+}
+
+#canvas {
+	display: block;
+}
+
+#canvas:focus {
+	outline: none;
+}
+
+#status {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	visibility: hidden;
+	background:
+		radial-gradient(ellipse at 50% 40%, rgba(255, 42, 58, 0.10), transparent 60%),
+		radial-gradient(ellipse at 50% 120%, rgba(57, 216, 255, 0.08), transparent 55%),
+		var(--bg);
+	font-family: var(--mono);
+	overflow: hidden;
+}
+
+/* CRT scan-lines + vignette over everything. */
+#status::before, #status::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+}
+
+#status::before {
+	background: repeating-linear-gradient(
+		to bottom, rgba(255, 255, 255, 0.025) 0, rgba(255, 255, 255, 0.025) 1px, transparent 1px, transparent 3px
+	);
+}
+
+#status::after {
+	background: radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, 0.7));
+}
+
+.terminal {
+	position: relative;
+	z-index: 1;
+	width: min(760px, 92vw);
+	max-height: 96vh;
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+	gap: clamp(10px, 2.2vh, 18px);
+}
+
+.alert {
+	color: var(--red);
+	font-size: clamp(11px, 1.6vw, 14px);
+	letter-spacing: 0.18em;
+	text-transform: uppercase;
+	animation: blink 1.2s steps(2, start) infinite;
+}
+
+.log {
+	margin: 0;
+	min-height: 7.5em;
+	font-size: clamp(11px, 1.7vw, 14px);
+	line-height: 1.5;
+	color: var(--muted);
+	white-space: pre-wrap;
+}
+
+.log .ok {
+	color: var(--cyan);
+}
+
+.log .warn {
+	color: var(--red);
+}
+
+.title {
+	margin: clamp(4px, 1.5vh, 14px) 0 0;
+	text-align: center;
+	font-size: clamp(34px, 9vw, 84px);
+	font-weight: 800;
+	letter-spacing: 0.32em;
+	padding-left: 0.32em; /* balance the letter-spacing */
+	color: #e9f8ff;
+	text-shadow: 0 0 18px rgba(57, 216, 255, 0.55), 3px 0 0 rgba(255, 42, 58, 0.75), -3px 0 0 rgba(57, 216, 255, 0.55);
+	animation: glitch 4.5s infinite;
+}
+
+.subtitle {
+	margin-top: -6px;
+	text-align: center;
+	font-size: clamp(10px, 1.5vw, 12px);
+	letter-spacing: 0.4em;
+	color: var(--muted);
+}
+
+.bar {
+	display: grid;
+	grid-template-columns: repeat(24, 1fr);
+	gap: 3px;
+	height: clamp(10px, 1.8vh, 14px);
+}
+
+.bar span {
+	background: rgba(255, 255, 255, 0.06);
+	border: 1px solid rgba(255, 255, 255, 0.05);
+	transition: background-color 0.15s;
+}
+
+.bar span.on {
+	background: var(--seg);
+	border-color: transparent;
+	box-shadow: 0 0 8px var(--seg);
+}
+
+.readout {
+	display: flex;
+	justify-content: space-between;
+	font-size: clamp(11px, 1.6vw, 13px);
+	color: var(--muted);
+}
+
+.readout #percent {
+	color: var(--cyan);
+}
+
+.tip {
+	min-height: 2.8em;
+	font-size: clamp(11px, 1.7vw, 14px);
+	line-height: 1.4;
+	color: var(--text);
+	transition: opacity 0.4s;
+}
+
+.tip b {
+	color: var(--red);
+	font-weight: 600;
+	margin-right: 0.6em;
+}
+
+.controls {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 6px 24px;
+	padding-top: 10px;
+	border-top: 1px solid rgba(255, 255, 255, 0.07);
+	font-size: clamp(10px, 1.5vw, 12px);
+	color: var(--muted);
+}
+
+.controls h2 {
+	grid-column: span 1;
+	margin: 0 0 2px;
+	font-size: inherit;
+	font-weight: 600;
+	color: var(--text);
+	letter-spacing: 0.15em;
+}
+
+.controls dl {
+	margin: 0;
+	display: grid;
+	grid-template-columns: auto 1fr;
+	gap: 2px 10px;
+}
+
+.controls dt {
+	color: var(--cyan);
+}
+
+.controls dd {
+	margin: 0;
+}
+
+#status-notice {
+	display: none;
+	color: var(--red);
+	font-size: 14px;
+	line-height: 1.5;
+	border: 1px solid var(--red-dim);
+	padding: 12px 14px;
+	background: rgba(255, 42, 58, 0.06);
+}
+
+@keyframes blink {
+	to { opacity: 0.35; }
+}
+
+@keyframes glitch {
+	0%, 92%, 100% { transform: none; }
+	93% { transform: translate(2px, -1px) skewX(-4deg); }
+	95% { transform: translate(-2px, 1px); }
+	97% { transform: translate(1px, 0) skewX(3deg); }
+}
+
+@media (max-width: 560px) {
+	.controls { grid-template-columns: 1fr; }
+	.controls .kbm { display: none; }
+	.alert { font-size: 10px; letter-spacing: 0.05em; }
+	.log { font-size: 11px; }
+	.title { font-size: 12vw; letter-spacing: 0.12em; padding-left: 0.12em; }
+	.subtitle { letter-spacing: 0.18em; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.alert, .title { animation: none; }
+}
+		</style>
+		$GODOT_HEAD_INCLUDE
+	</head>
+	<body>
+		<canvas id="canvas">
+			Your browser does not support the canvas tag.
+		</canvas>
+
+		<noscript>
+			Your browser does not support JavaScript.
+		</noscript>
+
+		<div id="status">
+			<div class="terminal" role="status" aria-live="polite">
+				<div class="alert">AXIOM NETWORK // UNAUTHORIZED LINK DETECTED</div>
+				<pre class="log" id="log"></pre>
+				<div class="title">DROIDOOM</div>
+				<div class="subtitle">HUMAN PILOT · HOLLOW UNIT</div>
+				<div class="bar" id="bar" aria-hidden="true"></div>
+				<div class="readout">
+					<span id="phase">ESTABLISHING LINK</span>
+					<span><span id="percent">0%</span>&nbsp;&nbsp;<span id="bytes"></span></span>
+				</div>
+				<div id="status-notice"></div>
+				<div class="tip" id="tip"></div>
+				<div class="controls" id="controls">
+					<div class="kbm">
+						<h2>KEYBOARD + MOUSE</h2>
+						<dl>
+							<dt>WASD</dt><dd>move</dd>
+							<dt>Mouse</dt><dd>aim</dd>
+							<dt>LMB / RMB</dt><dd>fire / heavy</dd>
+							<dt>Space</dt><dd>dash</dd>
+							<dt>1-4 · wheel · Q</dt><dd>weapons</dd>
+							<dt>R · V</dt><dd>reload · camera</dd>
+						</dl>
+					</div>
+					<div class="touch">
+						<h2>TOUCH</h2>
+						<dl>
+							<dt>Left thumb</dt><dd>move</dd>
+							<dt>Right thumb</dt><dd>aim · push far to fire</dd>
+							<dt>DASH</dt><dd>dodge through attacks</dd>
+							<dt>HEAVY</dt><dd>rockets / grenades</dd>
+							<dt>SWAP · CAM</dt><dd>weapon · camera</dd>
+						</dl>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<script src="$GODOT_URL"></script>
+		<script>
+const GODOT_CONFIG = $GODOT_CONFIG;
+const GODOT_THREADS_ENABLED = $GODOT_THREADS_ENABLED;
+const engine = new Engine(GODOT_CONFIG);
+
+// --- Droidoom loading screen (presentation only) ---------------------------
+const loadingScreen = (function () {
+	const SEGMENTS = 24;
+	// Log lines unlock as the download passes each share (0..1).
+	const LOG = [
+		[0.0, '> intercepting AXIOM uplink ...', ''],
+		[0.12, '> locating human pilot ........ ', 'OK'],
+		[0.3, '> bypassing droid core ........ ', 'OK'],
+		[0.5, '> purging AXIOM directives .... ', 'OK'],
+		[0.7, '> loading combat firmware ..... ', 'OK'],
+		[0.9, '> calibrating neural sync ..... ', 'OK'],
+	];
+	const TIPS = [
+		['TIP', 'Dash through an attack just before it lands to trigger NEURAL SYNC: the world slows and your weapons hit harder.'],
+		['TIP', 'Shoot a Kamikaze while it is inside a pack. Its blast hits AXIOM too.'],
+		['TIP', "A Gunner aims where you are, not where you're going. Keep moving sideways."],
+		['TIP', 'The red optic on a droid is a weak spot: hits there count as critical.'],
+		['TIP', 'Rockets lock onto the droid nearest your aim. Grenades arc to your cursor and bounce.'],
+		['TIP', 'Clearing a wave repairs your hull and refills your ammo.'],
+		['INTEL', 'AXIOM thinks in microseconds. It still cannot predict a human.'],
+		['INTEL', "HOLLOW has no onboard mind. Every move it makes is yours."],
+		['INTEL', 'Every droid in the city answers to one network. Wake one, and its neighbours hear.'],
+	];
+
+	const log = document.getElementById('log');
+	const bar = document.getElementById('bar');
+	const percent = document.getElementById('percent');
+	const bytes = document.getElementById('bytes');
+	const phase = document.getElementById('phase');
+	const tip = document.getElementById('tip');
+	const controls = document.getElementById('controls');
+	const segments = [];
+	let shownLines = 0;
+	let tipIndex = Math.floor(Math.random() * TIPS.length);
+	let tipTimer = null;
+
+	for (let i = 0; i < SEGMENTS; i++) {
+		const seg = document.createElement('span');
+		// Red (AXIOM) at the start, cyan (HOLLOW) at the end.
+		const t = i / (SEGMENTS - 1);
+		const r = Math.round(255 + (57 - 255) * t);
+		const g = Math.round(42 + (216 - 42) * t);
+		const b = Math.round(58 + (255 - 58) * t);
+		seg.style.setProperty('--seg', `rgb(${r}, ${g}, ${b})`);
+		bar.appendChild(seg);
+		segments.push(seg);
+	}
+
+	// Touch devices: show the touch controls first.
+	if (window.matchMedia('(pointer: coarse)').matches) {
+		controls.insertBefore(controls.querySelector('.touch'), controls.firstChild);
+	}
+
+	function addLine(text, status) {
+		const line = document.createElement('span');
+		line.textContent = text;
+		log.appendChild(line);
+		if (status) {
+			const mark = document.createElement('span');
+			mark.className = status === 'OK' ? 'ok' : 'warn';
+			mark.textContent = status;
+			log.appendChild(mark);
+		}
+		log.appendChild(document.createTextNode('\n'));
+	}
+
+	function showTip() {
+		const [label, text] = TIPS[tipIndex % TIPS.length];
+		tip.style.opacity = '0';
+		setTimeout(() => {
+			tip.innerHTML = '';
+			const b = document.createElement('b');
+			b.textContent = label;
+			tip.appendChild(b);
+			tip.appendChild(document.createTextNode(text));
+			tip.style.opacity = '1';
+		}, 350);
+		tipIndex += 1;
+	}
+
+	function mb(n) {
+		return (n / 1048576).toFixed(1);
+	}
+
+	return {
+		start() {
+			showTip();
+			tipTimer = setInterval(showTip, 5500);
+			this.progress(0, 0);
+		},
+		progress(current, total) {
+			const share = total > 0 ? Math.min(1, current / total) : 0;
+			const lit = Math.round(share * SEGMENTS);
+			segments.forEach((seg, i) => seg.classList.toggle('on', i < lit));
+			percent.textContent = total > 0 ? `${Math.round(share * 100)}%` : '…';
+			bytes.textContent = total > 0 ? `${mb(current)} / ${mb(total)} MB` : '';
+			while (shownLines < LOG.length && share >= LOG[shownLines][0]) {
+				addLine(LOG[shownLines][1], LOG[shownLines][2]);
+				shownLines += 1;
+			}
+			if (total > 0 && current >= total) {
+				phase.textContent = 'COMPILING FIRMWARE';
+			} else {
+				phase.textContent = 'DOWNLOADING';
+			}
+		},
+		booting() {
+			// Download done: the engine compiles and loads the first level.
+			if (shownLines < LOG.length) {
+				this.progress(1, 1);
+			}
+			phase.textContent = 'DEPLOYING HOLLOW';
+		},
+		done() {
+			addLine('> HOLLOW link established ..... ', 'OK');
+			if (tipTimer !== null) {
+				clearInterval(tipTimer);
+			}
+		},
+	};
+}());
+// ---------------------------------------------------------------------------
+
+(function () {
+	const statusOverlay = document.getElementById('status');
+	const statusNotice = document.getElementById('status-notice');
+
+	let initializing = true;
+	let statusMode = '';
+
+	function setStatusMode(mode) {
+		if (statusMode === mode || !initializing) {
+			return;
+		}
+		if (mode === 'hidden') {
+			statusOverlay.remove();
+			initializing = false;
+			return;
+		}
+		statusOverlay.style.visibility = 'visible';
+		statusNotice.style.display = mode === 'notice' ? 'block' : 'none';
+		statusMode = mode;
+	}
+
+	function setStatusNotice(text) {
+		while (statusNotice.lastChild) {
+			statusNotice.removeChild(statusNotice.lastChild);
+		}
+		const lines = text.split('\n');
+		lines.forEach((line) => {
+			statusNotice.appendChild(document.createTextNode(line));
+			statusNotice.appendChild(document.createElement('br'));
+		});
+	}
+
+	function displayFailureNotice(err) {
+		console.error(err);
+		if (err instanceof Error) {
+			setStatusNotice(err.message);
+		} else if (typeof err === 'string') {
+			setStatusNotice(err);
+		} else {
+			setStatusNotice('An unknown error occurred.');
+		}
+		setStatusMode('notice');
+		initializing = false;
+	}
+
+	const missing = Engine.getMissingFeatures({
+		threads: GODOT_THREADS_ENABLED,
+	});
+
+	if (missing.length !== 0) {
+		if (GODOT_CONFIG['serviceWorker'] && GODOT_CONFIG['ensureCrossOriginIsolationHeaders'] && 'serviceWorker' in navigator) {
+			let serviceWorkerRegistrationPromise;
+			try {
+				serviceWorkerRegistrationPromise = navigator.serviceWorker.getRegistration();
+			} catch (err) {
+				serviceWorkerRegistrationPromise = Promise.reject(new Error('Service worker registration failed.'));
+			}
+			// There's a chance that installing the service worker would fix the issue
+			Promise.race([
+				serviceWorkerRegistrationPromise.then((registration) => {
+					if (registration != null) {
+						return Promise.reject(new Error('Service worker already exists.'));
+					}
+					return registration;
+				}).then(() => engine.installServiceWorker()),
+				// For some reason, `getRegistration()` can stall
+				new Promise((resolve) => {
+					setTimeout(() => resolve(), 2000);
+				}),
+			]).then(() => {
+				// Reload if there was no error.
+				window.location.reload();
+			}).catch((err) => {
+				console.error('Error while registering service worker:', err);
+			});
+		} else {
+			// Display the message as usual
+			const missingMsg = 'LINK FAILED\nThis browser is missing features the game needs:\n';
+			displayFailureNotice(missingMsg + missing.join('\n'));
+		}
+	} else {
+		setStatusMode('progress');
+		loadingScreen.start();
+		let downloaded = false;
+		engine.startGame({
+			'onProgress': function (current, total) {
+				loadingScreen.progress(current, total);
+				if (!downloaded && total > 0 && current >= total) {
+					downloaded = true;
+					loadingScreen.booting();
+				}
+			},
+		}).then(() => {
+			loadingScreen.done();
+			setStatusMode('hidden');
+		}, displayFailureNotice);
+	}
+}());
+		</script>
+	</body>
+</html>

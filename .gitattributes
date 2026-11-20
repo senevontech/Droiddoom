@@ -38,3 +38,8 @@
 # Third-party addons (GUT): CI checks out without LFS, and the test runner
 # needs its own fonts and icons, or it logs font errors that fail the tests.
 game/addons/** -filter -diff -merge
+# Generated placeholder SFX (tools/gen_sfx.py, ~340 KB): plain git so CI
+# (no LFS) imports real audio. Real recordings later may go back to LFS.
+game/assets/audio/sfx/** -filter -diff -merge
+# Small UI images (boot splash, rendered by us): plain git so CI imports them.
+game/assets/ui/** -filter -diff -merge

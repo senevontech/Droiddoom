@@ -85,6 +85,8 @@ var _fire: TouchButton
 var _taps: Dictionary = {}
 var _firing: bool = false
 var _enabled: bool = true
+## 0 = ready, 1 = just used (the DASH button shows a cooldown sweep).
+var _dash_cooldown: float = 0.0
 
 
 func _ready() -> void:
@@ -109,6 +111,11 @@ func _ready() -> void:
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_APPLICATION_FOCUS_OUT:
 		_release_all()
+
+
+## Dash cooldown to show on the DASH button (0 = ready, 1 = just used).
+func set_dash_cooldown(ratio: float) -> void:
+	_dash_cooldown = clampf(ratio, 0.0, 1.0)
 
 
 ## False hides the controls whatever the device (game-over screen).
@@ -205,6 +212,17 @@ func _draw() -> void:
 			continue
 		draw_circle(button.centre, button.radius, PRESSED if button.index >= 0 else FILL)
 		draw_arc(button.centre, button.radius, 0.0, TAU, 32, RING, 2.0)
+		if button.action == &"ability" and _dash_cooldown > 0.0:
+			# Cooldown: a dark sweep that shrinks as the dash recharges.
+			draw_arc(
+				button.centre,
+				button.radius * 0.8,
+				-PI * 0.5,
+				-PI * 0.5 + TAU * _dash_cooldown,
+				32,
+				Color(0.0, 0.0, 0.0, 0.5),
+				button.radius * 0.35
+			)
 		var font_size: int = roundi(15.0 * s) if button != _fire else roundi(20.0 * s)
 		var text_size: Vector2 = font.get_string_size(
 			button.label, HORIZONTAL_ALIGNMENT_CENTER, -1, font_size

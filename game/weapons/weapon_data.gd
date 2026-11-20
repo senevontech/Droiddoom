@@ -46,6 +46,8 @@ enum FireMode { PROJECTILE, BEAM }
 @export_group("Feedback")
 ## Enemies within this distance hear the shot (P1-17). 0 = silent.
 @export var noise_radius: float = 25.0
+## Sound played on each shot (AudioManager name, e.g. &"shot_rifle"). Empty = silent.
+@export var fire_sfx: StringName = &""
 ## Push back on the shooter per shot (m/s, horizontal).
 @export var recoil: float = 0.0
 ## Muzzle flash size (m). 0 = no flash.

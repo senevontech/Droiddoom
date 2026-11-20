@@ -14,6 +14,8 @@ const FLASH_ALPHA: float = 0.35
 const FLASH_FADE: float = 2.5
 const HP_OK: Color = Color(0.35, 0.9, 0.55)
 const HP_LOW: Color = Color(1.0, 0.25, 0.2)
+## Screen tint while Neural Sync slows the world.
+const SYNC_TINT: Color = Color(0.2, 0.85, 1.0, 0.16)
 
 var _player: Hollow
 var _director: WaveDirector
@@ -30,6 +32,8 @@ var _hp_fill: StyleBoxFlat
 @onready var _banner: Label = $Banner
 @onready var _weapons: Label = $BottomLeft/Weapons
 @onready var _reload: ProgressBar = $BottomLeft/Reload
+@onready var _dash_bar: ProgressBar = $TopLeft/DashBar
+@onready var _sync_tint: ColorRect = $SyncTint
 @onready var _hint: Label = $Hint
 @onready var _touch: TouchControls = $TouchControls
 @onready var _game_over_panel: Control = $GameOver
@@ -45,7 +49,12 @@ func _ready() -> void:
 	_banner.modulate.a = 0.0
 	_game_over_panel.visible = false
 	_restart.pressed.connect(func() -> void: restart_requested.emit())
+	_sync_tint.color = SYNC_TINT
+	_sync_tint.visible = false
 	EventBus.player_damaged.connect(_on_player_damaged)
+	EventBus.neural_sync_triggered.connect(
+		func(_threats: int) -> void: show_banner("NEURAL SYNC", SYNC_TINT.lightened(0.4))
+	)
 	EventBus.wave_started.connect(func(n: int) -> void: show_banner("WAVE %d" % n))
 	EventBus.wave_cleared.connect(
 		func(n: int) -> void: show_banner("WAVE %d CLEARED · HULL REPAIRED" % n)
@@ -58,8 +67,9 @@ func bind(player: Hollow, director: WaveDirector) -> void:
 	_director = director
 
 
-## Big centred message that fades out.
-func show_banner(text: String) -> void:
+## Big centred message that fades out (default colour: AXIOM red).
+func show_banner(text: String, color: Color = Color(1.0, 0.35, 0.25)) -> void:
+	_banner.add_theme_color_override("font_color", Color(color, 1.0))
 	_banner.text = text
 	_banner_left = BANNER_TIME
 
@@ -89,7 +99,8 @@ func _process(delta: float) -> void:
 	_stats.text = "Kills %d · FPS %d" % [GameState.kills, Engine.get_frames_per_second()]
 	_flash.color.a = maxf(0.0, _flash.color.a - FLASH_FADE * delta * FLASH_ALPHA)
 	if _banner_left > 0.0:
-		_banner_left -= delta
+		# Real time: banners keep their pace during Neural Sync slow-motion.
+		_banner_left -= delta / maxf(Engine.time_scale, 0.01)
 		_banner.modulate.a = clampf(_banner_left / 0.5, 0.0, 1.0)
 
 
@@ -111,6 +122,13 @@ func _update_player() -> void:
 	_hp_text.text = "HULL %d / %d" % [ceili(health.get_health()), roundi(health.max_health)]
 	_hp_fill.bg_color = HP_LOW.lerp(HP_OK, clampf(health.get_ratio() * 1.6 - 0.2, 0.0, 1.0))
 	_weapons.text = "%s    |    %s" % [describe(_player.weapon), describe(_player.heavy_weapon)]
+	var cooldown: float = _player.dash.get_cooldown_ratio()
+	_dash_bar.value = 1.0 - cooldown
+	_dash_bar.modulate.a = 1.0 if cooldown <= 0.0 else 0.55
+	_touch.set_dash_cooldown(cooldown)
+	_sync_tint.visible = _player.is_neural_synced()
+	if _sync_tint.visible:
+		_sync_tint.color.a = SYNC_TINT.a * (0.4 + 0.6 * _player.get_neural_sync_ratio())
 	var reloading: Weapon = null
 	for gun: Weapon in [_player.weapon, _player.heavy_weapon]:
 		if gun != null and gun.is_reloading():

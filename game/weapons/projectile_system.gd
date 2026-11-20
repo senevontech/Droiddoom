@@ -60,6 +60,8 @@ class Shot:
 	var trail_timer: float = 0.0
 	## The point-blank check behind the muzzle still has to run.
 	var backcast: bool = true
+	## Damage multiplier fixed at launch (Neural Sync bonus).
+	var damage_scale: float = 1.0
 
 
 ## Random source for crits (seed it in tests).
@@ -114,7 +116,8 @@ func fire(
 	source: Node,
 	exclude: Array[RID],
 	homing_target: Node3D = null,
-	homing_point: Vector3 = Vector3.INF
+	homing_point: Vector3 = Vector3.INF,
+	damage_scale: float = 1.0
 ) -> void:
 	var shot: Shot = _spare.pop_back() if not _spare.is_empty() else Shot.new()
 	shot.weapon_data = weapon_data
@@ -135,6 +138,7 @@ func fire(
 	shot.resting = false
 	shot.trail_timer = 0.0
 	shot.backcast = true
+	shot.damage_scale = damage_scale
 	if _shots.size() >= MAX_SHOTS:
 		_recycle(0)
 	_shots.append(shot)
@@ -352,7 +356,7 @@ func _damage(shot: Shot, hurtbox: HurtboxComponent, at: Vector3, dir: Vector3) -
 	if shot.weapon_data.damage <= 0.0:
 		return
 	var source: Node = instance_from_id(shot.source_id) as Node if shot.source_id != 0 else null
-	hurtbox.take_hit(Weapon.make_damage(shot.weapon_data, source, at, dir, rng))
+	hurtbox.take_hit(Weapon.make_damage(shot.weapon_data, source, at, dir, rng, shot.damage_scale))
 
 
 func _explode(shot: Shot, at: Vector3) -> void:
@@ -362,7 +366,7 @@ func _explode(shot: Shot, at: Vector3) -> void:
 		get_world_3d(),
 		at,
 		data.explosion_radius,
-		data.explosion_damage,
+		data.explosion_damage * shot.damage_scale,
 		shot.weapon_data.damage_type,
 		data.explosion_force,
 		shot.target_mask,

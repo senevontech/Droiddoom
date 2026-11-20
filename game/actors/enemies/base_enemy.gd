@@ -86,8 +86,9 @@ var _separation: Vector3 = Vector3.ZERO
 ## Backing away from a target that came too close (Gunner).
 var _retreating: bool = false
 var _flinch_tween: Tween
-## When the telegraphed attack lands (Time.get_ticks_msec()), -1 = none.
-var _attack_lands_msec: int = -1
+var _hit_flash: HitFlash
+## Game seconds until the telegraphed attack lands, -1 = none.
+var _attack_eta: float = -1.0
 
 @onready var health: HealthComponent = $Health
 @onready var visuals: Node3D = get_node_or_null("Visuals")
@@ -110,6 +111,7 @@ func _ready() -> void:
 		_attack_hitbox.damage_type = data.attack_damage_type
 		_attack_hitbox.knockback = data.attack_knockback
 		_attack_hitbox.source = self
+	_hit_flash = HitFlash.new(visuals)
 	_coordinator = EnemyCoordinator.find_or_create(self)
 	_coordinator.register_enemy(self)
 	_brain = StateMachine.new(self)
@@ -132,6 +134,9 @@ func _physics_process(delta: float) -> void:
 	if health.is_dead():
 		return
 	_since_path += delta
+	if _attack_eta > 0.0:
+		# Game time, so Neural Sync slow-motion stretches windups correctly.
+		_attack_eta = maxf(0.0, _attack_eta - delta)
 	_think_elapsed += delta
 	_think_timer -= delta
 	if _think_timer <= 0.0:
@@ -228,7 +233,7 @@ func stop_moving() -> void:
 ## Starts the attack windup: pulses `Visuals/Telegraph` and emits `attack_telegraphed`.
 func telegraph_attack(windup: float) -> void:
 	attack_telegraphed.emit(windup)
-	_attack_lands_msec = Time.get_ticks_msec() + roundi(windup * 1000.0)
+	_attack_eta = windup
 	if _telegraph == null:
 		return
 	var tween: Tween = create_tween()
@@ -247,9 +252,9 @@ func perform_attack() -> void:
 ## Seconds until the telegraphed attack lands, or -1 if none is winding up
 ## (Neural Sync, P1-12).
 func get_attack_eta() -> float:
-	if _attack_lands_msec < 0 or health.is_dead():
+	if _attack_eta < 0.0 or health.is_dead():
 		return -1.0
-	return maxf(0.0, (_attack_lands_msec - Time.get_ticks_msec()) / 1000.0)
+	return _attack_eta
 
 
 ## How far the pending attack reaches (m). Melee: attack range plus the
@@ -261,7 +266,7 @@ func get_threat_reach() -> float:
 
 ## The windup ended (attack landed) or was interrupted (stun, retreat).
 func clear_pending_attack() -> void:
-	_attack_lands_msec = -1
+	_attack_eta = -1.0
 
 
 ## Wakes an idle enemy (alerted by a nearby droid, or spawned by a wave).
@@ -421,6 +426,7 @@ func _on_damaged(info: DamageInfo, _amount: float) -> void:
 		velocity.z += info.knockback.z
 	if health.is_dead():
 		return
+	_hit_flash.flash(self)
 	_flinch(info)
 	if not _crippled and health.get_ratio() <= data.cripple_ratio:
 		_crippled = true

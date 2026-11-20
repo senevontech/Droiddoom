@@ -22,6 +22,10 @@ var _running: bool = true
 
 
 func _ready() -> void:
+	# `-- --benchmark` (desktop) / `?benchmark` (web): run the benchmark instead.
+	if PlatformServices.has_launch_flag("benchmark"):
+		SceneRouter.go_to.call_deferred(Benchmark.SCENE)
+		return
 	GameState.reset_run()
 	GameState.current_mission_id = &"arena"
 	NavBaker.add_region(self, _sector)

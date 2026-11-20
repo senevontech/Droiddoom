@@ -22,4 +22,5 @@ magazine_size = 32
 reload_time = 1.6
 reserve_ammo = -1
 noise_radius = 28.0
-muzzle_flash_size = 0.35
+fire_sfx = &"shot_rifle"
+0.35

@@ -16,3 +16,7 @@ dash_time = 0.18
 dash_iframes = 0.24
 dash_cooldown = 0.8
 neural_sync_window = 0.2
+neural_sync_duration = 1.5
+neural_sync_time_scale = 0.35
+neural_sync_damage_bonus = 1.5
+neural_sync_haste = 0.7

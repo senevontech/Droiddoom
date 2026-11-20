@@ -22,7 +22,8 @@ extends Resource
 @export var stick_aim_distance: float = 8.0
 ## Stick deflection below this keeps the last aim direction.
 @export var stick_deadzone: float = 0.25
-## Aim assist cone half-angle for touch/gamepad in Tactical (deg, 0 = off).
+## Aim assist cone half-angle for touch/gamepad in Tactical (deg, 0 = off),
+## at the default strength (Settings.aim_assist 0.5; 1.0 doubles it).
 @export var tactical_assist_cone_deg: float = 12.0
 
 @export_group("Shoulder")
@@ -61,3 +62,21 @@ extends Resource
 @export var aim_plane_height: float = 1.2
 ## Aim assist only considers enemies this close (m).
 @export var assist_range: float = 30.0
+
+@export_group("Shake")
+## Camera shake (P1-13, Settings.screen_shake_enabled turns it off). Shake =
+## trauma² × these maxima; trauma (0..1) is added by events and decays.
+@export var shake_max_angle_deg: float = 2.2
+@export var shake_max_offset: float = 0.22
+## Trauma lost per real second.
+@export var shake_decay: float = 1.8
+## Wobble speed (Hz-ish).
+@export var shake_frequency: float = 17.0
+## Trauma from a blast at point-blank (scaled by radius, fades out at 6 radii).
+@export var shake_explosion: float = 0.55
+## Trauma per hull point HOLLOW loses.
+@export var shake_per_damage: float = 0.018
+## Trauma per m/s of the player's weapon recoil (railgun, scattergun, rockets).
+@export var shake_per_recoil: float = 0.07
+## Trauma when Neural Sync triggers.
+@export var shake_neural_sync: float = 0.3

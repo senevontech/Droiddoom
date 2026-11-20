@@ -20,5 +20,6 @@ magazine_size = 60
 reload_time = 1.4
 reserve_ammo = -1
 noise_radius = 12.0
-muzzle_flash_size = 0.15
+fire_sfx = &"shot_laser"
+0.15
 beam_width = 0.06

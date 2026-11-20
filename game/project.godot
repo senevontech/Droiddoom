@@ -17,6 +17,10 @@ run/main_scene="res://world/arena/arena.tscn"
 run/main_scene.feature_check="res://world/dev/feature_check/feature_check.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 config/icon="res://icon.svg"
+boot_splash/bg_color=Color(0.024, 0.031, 0.039, 1)
+boot_splash/image="res://assets/ui/boot_splash.png"
+boot_splash/stretch_mode=1
+boot_splash/use_filter=true
 
 [autoload]
 

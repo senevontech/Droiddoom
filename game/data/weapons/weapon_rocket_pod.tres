@@ -24,4 +24,5 @@ reserve_ammo = 16
 lock_radius = 4.0
 noise_radius = 35.0
 recoil = 0.6
-muzzle_flash_size = 0.5
+fire_sfx = &"shot_rocket"
+0.5

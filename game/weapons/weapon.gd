@@ -25,6 +25,12 @@ const BACKCAST: float = 0.9
 ## Random source for spread and crits (seed it in tests).
 var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 
+## Multiplies direct-hit and blast damage (Neural Sync bonus, later upgrades).
+var damage_scale: float = 1.0
+## Multiplies how fast cooldowns and reloads tick (Neural Sync haste: the
+## wielder keeps its real-time fire rate while the world is slowed).
+var time_scale: float = 1.0
+
 var _cooldown: float = 0.0
 var _exclude: Array[RID] = []
 var _magazine: int = 0
@@ -39,7 +45,8 @@ func _ready() -> void:
 	refill()
 
 
-func _process(delta: float) -> void:
+func _process(raw_delta: float) -> void:
+	var delta: float = raw_delta * time_scale
 	_cooldown = maxf(0.0, _cooldown - delta)
 	if _reload_left > 0.0:
 		_reload_left -= delta
@@ -97,6 +104,7 @@ func start_reload() -> bool:
 		return false
 	_reload_left = maxf(data.reload_time, 0.001)
 	reload_started.emit(data.reload_time)
+	EventBus.weapon_reload_started.emit(self)
 	return true
 
 
@@ -143,10 +151,15 @@ static func apply_spread(dir: Vector3, spread_deg: float, random: RandomNumberGe
 
 ## Damage for one direct hit of `weapon_data` travelling along `dir`.
 static func make_damage(
-	weapon_data: WeaponData, source: Node, at: Vector3, dir: Vector3, random: RandomNumberGenerator
+	weapon_data: WeaponData,
+	source: Node,
+	at: Vector3,
+	dir: Vector3,
+	random: RandomNumberGenerator,
+	scale: float = 1.0
 ) -> DamageInfo:
 	var info: DamageInfo = DamageInfo.create(
-		weapon_data.damage, weapon_data.damage_type, source, at
+		weapon_data.damage * scale, weapon_data.damage_type, source, at
 	)
 	if random.randf() < weapon_data.crit_chance:
 		info.amount *= weapon_data.crit_multiplier
@@ -178,7 +191,9 @@ func _fire_rounds(from: Vector3, aim_point: Vector3, aim_dir: Vector3) -> void:
 		var velocity: Vector3 = (
 			apply_spread(base.normalized(), data.spread_deg, rng) * base.length()
 		)
-		_projectiles.fire(data, from, velocity, target_mask, wielder, _exclude, lock, aim_point)
+		_projectiles.fire(
+			data, from, velocity, target_mask, wielder, _exclude, lock, aim_point, damage_scale
+		)
 
 
 func _fire_beam(from: Vector3, aim_dir: Vector3) -> void:
@@ -192,7 +207,7 @@ func _fire_beam(from: Vector3, aim_dir: Vector3) -> void:
 		end = hit["position"]
 		var hurtbox: HurtboxComponent = hit["hurtbox"]
 		if hurtbox != null:
-			hurtbox.take_hit(make_damage(data, wielder, end, dir, rng))
+			hurtbox.take_hit(make_damage(data, wielder, end, dir, rng, damage_scale))
 		EventBus.hit_landed.emit(end, hit["normal"], data.damage_type, hurtbox != null)
 	EventBus.beam_drawn.emit(from, end, data.beam_width, data.damage_type)
 

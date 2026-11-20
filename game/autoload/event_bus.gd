@@ -15,6 +15,10 @@ signal player_dashed(direction: Vector3)
 ## A dash dodged `threats` hits that were about to land (GDD §4.4). The
 ## slow-motion + damage bonus reward listens here (P1-13).
 signal neural_sync_triggered(threats: int)
+## The Neural Sync slow-motion reward ended (time is back to normal).
+signal neural_sync_ended
+## A weapon started reloading (or cooling down). `weapon` is a Weapon node.
+signal weapon_reload_started(weapon: Node3D)
 ## A weapon fired (any mode). `weapon` is a Weapon node: FX read its data
 ## (flash size, type), enemies hear it (noise_radius, P1-17).
 signal weapon_fired(weapon: Node3D, muzzle: Vector3, direction: Vector3)

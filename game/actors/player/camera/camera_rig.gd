@@ -4,6 +4,9 @@ extends Node3D
 ## camera mode (BaseCameraMode) supplies the desired transform; the rig blends over
 ## `tuning.blend_time` on a switch, also blending the move basis so held
 ## movement doesn't jerk. Registers with InputRouter, which serves aim to gameplay.
+## Camera shake (P1-13) is trauma-based and applied after aim is computed,
+## so shaking never moves the aim; it runs on real time (not slowed by
+## Neural Sync) and respects `Settings.screen_shake_enabled`.
 
 ## Node the camera follows (HOLLOW).
 @export var target: Node3D
@@ -26,6 +29,8 @@ var _occlusion_radius: float = 0.0
 var _move_yaw: float = 0.0
 var _move_yaw_from: float = 0.0
 var _exclude: Array[RID] = []
+var _trauma: float = 0.0
+var _shake_time: float = 0.0
 
 @onready var camera: Camera3D = $Camera3D
 
@@ -43,6 +48,14 @@ func _ready() -> void:
 	InputRouter.register_camera_rig(self)
 	EventBus.camera_mode_changed.connect(_on_camera_mode_changed)
 	EventBus.input_device_changed.connect(_on_input_device_changed)
+	EventBus.explosion_happened.connect(_on_explosion)
+	EventBus.player_damaged.connect(
+		func(amount: float, _type: int) -> void: add_trauma(amount * tuning.shake_per_damage)
+	)
+	EventBus.weapon_fired.connect(_on_weapon_fired)
+	EventBus.neural_sync_triggered.connect(
+		func(_threats: int) -> void: add_trauma(tuning.shake_neural_sync)
+	)
 	_switch_to(Settings.camera_mode, false)
 
 
@@ -83,6 +96,58 @@ func _process(delta: float) -> void:
 		_occlusion_radius = _active.get_occlusion_radius()
 	aim_target = _assist(_active.compute_aim_target())
 	_update_occlusion()
+	_apply_shake(delta)
+
+
+## Adds camera shake (0..1, capped at 1). Ignored when shake is off.
+func add_trauma(amount: float) -> void:
+	if Settings.screen_shake_enabled and amount > 0.0:
+		_trauma = minf(1.0, _trauma + amount)
+
+
+## Current shake trauma (tests, debug).
+func get_trauma() -> float:
+	return _trauma
+
+
+func _apply_shake(delta: float) -> void:
+	if _trauma <= 0.0:
+		return
+	var real_delta: float = delta / maxf(Engine.time_scale, 0.01)
+	_shake_time += real_delta
+	var amount: float = _trauma * _trauma
+	var t: float = _shake_time * tuning.shake_frequency
+	var angles: Vector3 = (
+		Vector3(_wobble(t, 1.0), _wobble(t, 2.0), _wobble(t, 3.0))
+		* deg_to_rad(tuning.shake_max_angle_deg)
+		* amount
+	)
+	var offset: Vector3 = (
+		Vector3(_wobble(t, 4.0), _wobble(t, 5.0), 0.0) * tuning.shake_max_offset * amount
+	)
+	camera.global_transform = (
+		camera.global_transform * Transform3D(Basis.from_euler(angles), offset)
+	)
+	_trauma = maxf(0.0, _trauma - tuning.shake_decay * real_delta)
+
+
+## Smooth pseudo-noise in -1..1 (two sines; `lane` decorrelates axes).
+static func _wobble(t: float, lane: float) -> float:
+	return sin(t + lane * 12.9) * 0.6 + sin(t * 2.31 + lane * 7.1) * 0.4
+
+
+func _on_explosion(position: Vector3, radius: float, _type: int) -> void:
+	if not is_instance_valid(target):
+		return
+	var distance: float = position.distance_to(target.global_position)
+	var near: float = clampf(1.0 - distance / maxf(radius * 6.0, 0.1), 0.0, 1.0)
+	add_trauma(tuning.shake_explosion * near * clampf(radius / 4.0, 0.5, 1.5))
+
+
+func _on_weapon_fired(weapon: Node3D, _muzzle: Vector3, _direction: Vector3) -> void:
+	var gun: Weapon = weapon as Weapon
+	if gun != null and gun.wielder == target and gun.data.recoil > 0.0:
+		add_trauma(gun.data.recoil * tuning.shake_per_recoil)
 
 
 ## World yaw that "forward" on the move stick maps to (blended during switches).
@@ -141,7 +206,7 @@ func _assist(aim: Vector3) -> Vector3:
 		origin,
 		aim,
 		coordinator.get_live_enemies(),
-		_active.get_aim_assist_cone(),
+		_active.get_aim_assist_cone() * Settings.aim_assist * 2.0,
 		tuning.assist_range,
 		func(from: Vector3, to: Vector3) -> bool:
 			return raycast(from, to, PhysicsLayers.WORLD).is_empty()

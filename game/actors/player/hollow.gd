@@ -7,6 +7,11 @@ extends CharacterBody3D
 ## Weapons: primaries (fire_primary, slots 1–4 / cycle) and heavies
 ## (fire_heavy, cycle), built from the loadout data at spawn (D-030).
 ## Dash (ability): burst + i-frames + cooldown, with Neural Sync detection.
+## A perfect dash starts the Neural Sync reward (P1-13): the world slows
+## (Engine.time_scale), HOLLOW keeps most of its real-time speed and fire
+## rate (`neural_sync_haste`) and its weapons deal bonus damage. The reward
+## runs on real time and always restores time when it ends, on death or when
+## HOLLOW leaves the tree.
 
 ## The equipped weapons changed (HUD listens).
 signal weapons_changed(primary: Weapon, heavy: Weapon)
@@ -33,6 +38,9 @@ var heavy_weapon: Weapon
 var dash: DashMotor = DashMotor.new()
 
 var _dash_requested: bool = false
+## Real-time msec when the Neural Sync reward ends, -1 = not active.
+var _sync_end_msec: int = -1
+var _hit_flash: HitFlash
 var _primaries: Array[Weapon] = []
 var _heavies: Array[Weapon] = []
 
@@ -48,6 +56,7 @@ func _ready() -> void:
 	health.max_health = stats.max_hp
 	health.reset()
 	dash.configure(stats)
+	_hit_flash = HitFlash.new(self)
 	health.damaged.connect(_on_damaged)
 	health.died.connect(_on_died)
 	for data: WeaponData in primary_loadout:
@@ -61,7 +70,7 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	if health.is_dead():
 		return
-	dash.update(delta)
+	dash.update(delta * get_haste())
 	if _dash_requested:
 		_dash_requested = false
 		try_dash()
@@ -74,13 +83,17 @@ func _physics_process(delta: float) -> void:
 		flat = step_velocity(
 			Vector3(velocity.x, 0.0, velocity.z), wish, stats.acceleration, stats.friction, delta
 		)
-	velocity.x = flat.x
-	velocity.z = flat.z
+	# Haste (Neural Sync): cover real-time distance while the world is slowed.
+	var haste: float = get_haste()
+	velocity.x = flat.x * haste
+	velocity.z = flat.z * haste
 	if is_on_floor():
 		velocity.y = 0.0
 	else:
 		velocity.y -= stats.gravity * delta
 	move_and_slide()
+	velocity.x /= haste
+	velocity.z /= haste
 	if flat.length() > 0.5:
 		var leg_yaw: float = atan2(-flat.x, -flat.z)
 		_legs.rotation.y = rotate_angle_toward(
@@ -88,12 +101,18 @@ func _physics_process(delta: float) -> void:
 		)
 
 
+func _exit_tree() -> void:
+	end_neural_sync()
+
+
 func _process(delta: float) -> void:
+	if _sync_end_msec >= 0 and Time.get_ticks_msec() >= _sync_end_msec:
+		end_neural_sync()
 	var to_aim: Vector3 = InputRouter.get_aim_target() - global_position
 	if Vector2(to_aim.x, to_aim.z).length() > 0.3:
 		var aim_yaw: float = atan2(-to_aim.x, -to_aim.z) - global_rotation.y
 		_turret.rotation.y = rotate_angle_toward(
-			_turret.rotation.y, aim_yaw, stats.turret_turn_speed * delta
+			_turret.rotation.y, aim_yaw, stats.turret_turn_speed * delta * get_haste()
 		)
 	if health.is_dead():
 		return
@@ -122,9 +141,52 @@ func try_dash() -> bool:
 	var threats: int = NeuralSync.count_threats(self, stats.neural_sync_window)
 	EventBus.player_dashed.emit(dash.direction)
 	if threats > 0:
+		start_neural_sync()
 		EventBus.neural_sync_triggered.emit(threats)
 	dashed.emit(dash.direction, threats > 0)
 	return true
+
+
+## Starts (or extends) the Neural Sync reward.
+func start_neural_sync() -> void:
+	_sync_end_msec = Time.get_ticks_msec() + roundi(stats.neural_sync_duration * 1000.0)
+	Engine.time_scale = stats.neural_sync_time_scale
+	var haste: float = get_haste()
+	for gun: Weapon in _primaries + _heavies:
+		gun.damage_scale = stats.neural_sync_damage_bonus
+		gun.time_scale = haste
+
+
+## True while the Neural Sync reward runs.
+func is_neural_synced() -> bool:
+	return _sync_end_msec >= 0
+
+
+## 0..1 of the reward left (HUD).
+func get_neural_sync_ratio() -> float:
+	if _sync_end_msec < 0:
+		return 0.0
+	var left: float = (_sync_end_msec - Time.get_ticks_msec()) / 1000.0
+	return clampf(left / maxf(stats.neural_sync_duration, 0.001), 0.0, 1.0)
+
+
+## How much faster than the world HOLLOW runs right now (1 = same speed).
+func get_haste() -> float:
+	if _sync_end_msec < 0 or Engine.time_scale <= 0.0:
+		return 1.0
+	return lerpf(1.0, 1.0 / Engine.time_scale, stats.neural_sync_haste)
+
+
+## Ends the reward and puts time back to normal.
+func end_neural_sync() -> void:
+	if _sync_end_msec < 0:
+		return
+	_sync_end_msec = -1
+	Engine.time_scale = 1.0
+	for gun: Weapon in _primaries + _heavies:
+		gun.damage_scale = 1.0
+		gun.time_scale = 1.0
+	EventBus.neural_sync_ended.emit()
 
 
 ## Equips primary weapon `index` (wraps around). A reload in progress is lost.
@@ -201,6 +263,7 @@ static func rotate_angle_toward(from: float, to: float, max_step: float) -> floa
 
 
 func _on_damaged(info: DamageInfo, final_amount: float) -> void:
+	_hit_flash.flash(self)
 	if info.knockback != Vector3.ZERO:
 		apply_knockback(info.knockback)
 	EventBus.player_damaged.emit(final_amount, info.type)
@@ -208,6 +271,8 @@ func _on_damaged(info: DamageInfo, final_amount: float) -> void:
 
 func _on_died(info: DamageInfo) -> void:
 	dash.cancel()
+	end_neural_sync()
+	_hit_flash.clear()
 	# The wreck no longer blocks or can be hit; droids lose their target.
 	collision_layer = 0
 	for child: Node in get_children():
