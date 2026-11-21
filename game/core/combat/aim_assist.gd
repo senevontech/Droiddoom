@@ -20,13 +20,27 @@ static func apply(
 	max_range: float,
 	line_clear: Callable = Callable()
 ) -> Vector3:
+	var target: Node3D = find_target(origin, aim, candidates, cone_deg, max_range, line_clear)
+	return target.global_position + Vector3.UP * CHEST if target != null else aim
+
+
+## The living enemy closest to the aim line inside the cone, or null.
+## Also used by touch auto-fire (P1-31) to know the aim is "on" a droid.
+static func find_target(
+	origin: Vector3,
+	aim: Vector3,
+	candidates: Array[Node3D],
+	cone_deg: float,
+	max_range: float,
+	line_clear: Callable = Callable()
+) -> Node3D:
 	if cone_deg <= 0.0 or candidates.is_empty():
-		return aim
+		return null
 	var dir: Vector3 = aim - origin
 	if dir.length() < 0.01:
-		return aim
+		return null
 	dir = dir.normalized()
-	var best: Vector3 = aim
+	var best: Node3D = null
 	var best_angle: float = deg_to_rad(cone_deg)
 	for enemy: Node3D in candidates:
 		if not is_instance_valid(enemy):
@@ -42,5 +56,5 @@ static func apply(
 		if line_clear.is_valid() and not line_clear.call(origin, chest):
 			continue
 		best_angle = angle
-		best = chest
+		best = enemy
 	return best

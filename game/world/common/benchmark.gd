@@ -16,6 +16,8 @@ extends Node3D
 ## (web; Arena redirects here). Add `--benchmark-quit` to exit when done.
 ## Force a quality preset with `--low` / `--medium` / `--high` / `--ultra`
 ## (web: `?benchmark&low`); otherwise the current preset is used.
+## Diagnostics (find what costs what): `--nofire` (HOLLOW holds fire),
+## `--nodebris` (no wreck bodies), `--nodroids` (empty street).
 
 enum Phase { WARMUP, TACTICAL, SWITCH, SHOULDER, DONE }
 
@@ -52,6 +54,7 @@ var _rocket_left: float = ROCKET_EVERY
 var _spawns: Array[Node3D] = []
 var _start: Vector3 = Vector3.ZERO
 var _results: Dictionary = {}
+var _hold_fire: bool = false
 
 @onready var _sector: Node3D = $Sector
 @onready var _hollow: Hollow = $Hollow
@@ -68,10 +71,19 @@ func _enter_tree() -> void:
 	for i in names.size():
 		if PlatformServices.has_launch_flag(names[i]):
 			QualityManager.apply_preset(i as QualityManager.Preset)
+	if PlatformServices.has_launch_flag("nodebris") and QualityManager.settings != null:
+		QualityManager.settings = QualityManager.settings.duplicate()
+		QualityManager.settings.max_debris_bodies = 0
+	if PlatformServices.has_launch_flag("nodroids"):
+		target_droids = 0
+	_hold_fire = PlatformServices.has_launch_flag("nofire")
 
 
 func _ready() -> void:
 	rng.seed = 1234
+	# Same weapons (and load) on every account: paid ones included (D-035).
+	_hollow.ignore_unlocks = true
+	_hollow.refresh_unlocks()
 	NavBaker.add_region(self, _sector)
 	var markers: Node = _sector.get_node("Markers")
 	var start: Node3D = markers.get_node_or_null("PlayerStart") as Node3D
@@ -146,7 +158,7 @@ func _drive_hollow(dt: float) -> void:
 		_start + Vector3(sin(_clock * 0.25) * SWEEP_X, 0.0, cos(_clock * 0.5) * 1.5)
 	)
 	var target: BaseEnemy = _nearest_droid()
-	if target == null:
+	if target == null or _hold_fire:
 		return
 	var aim: Vector3 = target.global_position + Vector3.UP * 0.7
 	if _hollow.weapon.is_out_of_ammo() or _hollow.weapon.get_magazine() == 0:

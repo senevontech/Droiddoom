@@ -80,6 +80,14 @@ func get_reserve() -> int:
 	return _reserve
 
 
+## Adds spare rounds (ignored for unlimited reserves). Returns rounds added.
+func add_reserve(rounds: int) -> int:
+	if _reserve < 0 or rounds <= 0:
+		return 0
+	_reserve += rounds
+	return rounds
+
+
 func is_reloading() -> bool:
 	return _reload_left > 0.0
 

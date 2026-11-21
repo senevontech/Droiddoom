@@ -18,6 +18,9 @@ extends Node3D
 
 ## Aim point computed this frame (world space).
 var aim_target: Vector3 = Vector3.ZERO
+## True while the aim (touch/gamepad) points at a droid in clear view:
+## drives touch auto-fire (P1-31). Never set for mouse aim.
+var aim_on_target: bool = false
 
 var _modes: Dictionary = {}
 var _active: BaseCameraMode
@@ -194,6 +197,7 @@ func _switch_to(mode: Settings.CameraMode, blend: bool) -> void:
 ## between the camera and the player.
 ## Touch and gamepad aim snaps toward a nearby enemy (P1-11); mouse never.
 func _assist(aim: Vector3) -> Vector3:
+	aim_on_target = false
 	if InputRouter.active_device == InputRouter.Device.KEYBOARD_MOUSE:
 		return aim
 	var coordinator: EnemyCoordinator = (
@@ -202,15 +206,22 @@ func _assist(aim: Vector3) -> Vector3:
 	if coordinator == null:
 		return aim
 	var origin: Vector3 = target.global_position + Vector3(0.0, tuning.aim_plane_height, 0.0)
-	return AimAssist.apply(
+	var enemies: Array[Node3D] = coordinator.get_live_enemies()
+	var clear: Callable = func(from: Vector3, to: Vector3) -> bool:
+		return raycast(from, to, PhysicsLayers.WORLD).is_empty()
+	var assisted: Vector3 = AimAssist.apply(
 		origin,
 		aim,
-		coordinator.get_live_enemies(),
+		enemies,
 		_active.get_aim_assist_cone() * Settings.aim_assist * 2.0,
 		tuning.assist_range,
-		func(from: Vector3, to: Vector3) -> bool:
-			return raycast(from, to, PhysicsLayers.WORLD).is_empty()
+		clear
 	)
+	var cone: float = maxf(tuning.auto_fire_cone_deg, 0.1)
+	aim_on_target = (
+		AimAssist.find_target(origin, assisted, enemies, cone, tuning.assist_range, clear) != null
+	)
+	return assisted
 
 
 func _update_occlusion() -> void:

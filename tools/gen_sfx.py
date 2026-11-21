@@ -318,6 +318,14 @@ def build() -> None:
         .space(0.35, 1.0)
         .write("wave_start")
     )
+    (  # Pickup: quick rising two-note chime with a soft shimmer.
+        Sig(0.5, 17)
+        .tone(0.6, 880, 880, ad(0.005, 9), length=0.25)
+        .tone(0.6, 1320, 1320, ad(0.005, 7), start=0.08)
+        .noise(0.08, ad(0.01, 8), 0.9, 0.5)
+        .space(0.25, 0.8)
+        .write("pickup")
+    )
     (  # Reload: mag out click, mag in clack, charging handle.
         Sig(0.5, 16)
         .crack(0.5, ms=1)

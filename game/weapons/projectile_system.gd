@@ -74,6 +74,9 @@ var _meshes: Array[MultiMesh] = []
 var _flame: MultiMesh
 var _gravity: float = 9.8
 var _fx: CombatFX
+## Shader warm-up (P1-27): frames left to draw one of every look at _warm_at.
+var _warm_frames: int = 0
+var _warm_at: Vector3 = Vector3.ZERO
 
 
 func _enter_tree() -> void:
@@ -142,6 +145,19 @@ func fire(
 	if _shots.size() >= MAX_SHOTS:
 		_recycle(0)
 	_shots.append(shot)
+
+
+## Draws one of every round look (and the missile flame) at `at` for
+## `frames` frames, so their shaders compile during loading, not on the first
+## shot (P1-27; WebGL compiles are slow and block the frame).
+func warm_up(at: Vector3, frames: int = 4) -> void:
+	_warm_at = at
+	_warm_frames = frames
+
+
+## True while a warm-up draw is pending (tests).
+func is_warming_up() -> bool:
+	return _warm_frames > 0
 
 
 ## Rounds currently in flight.
@@ -225,6 +241,16 @@ func _process(_delta: float) -> void:
 				xform = Transform3D(Basis(), pos)
 		_meshes[visual].set_instance_transform(counts[visual], xform)
 		counts[visual] += 1
+	if _warm_frames > 0:
+		_warm_frames -= 1
+		for v in _meshes.size():
+			if counts[v] == 0:
+				var offset: Vector3 = Vector3(0.4 * v, 0.0, 0.0)
+				_meshes[v].set_instance_transform(0, Transform3D(Basis(), _warm_at + offset))
+				counts[v] = 1
+		if flames == 0:
+			_flame.set_instance_transform(0, Transform3D(Basis(), _warm_at + Vector3.UP * 0.3))
+			flames = 1
 	for v in _meshes.size():
 		_meshes[v].visible_instance_count = counts[v]
 	_flame.visible_instance_count = flames

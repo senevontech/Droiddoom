@@ -34,6 +34,7 @@ QualityManager="*res://autoload/quality_manager.gd"
 InputRouter="*res://autoload/input_router.gd"
 AudioManager="*res://autoload/audio_manager.gd"
 PlatformServices="*res://autoload/platform_services.gd"
+Senevon="*res://platform/senevon/senevon.gd"
 SceneRouter="*res://autoload/scene_router.gd"
 
 [display]
@@ -45,7 +46,7 @@ window/stretch/aspect="expand"
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/gut/plugin.cfg")
+enabled=PackedStringArray("res://addons/droidoom_web_export/plugin.cfg", "res://addons/gut/plugin.cfg")
 
 [input]
 

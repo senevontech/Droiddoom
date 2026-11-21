@@ -35,6 +35,7 @@ const SOUNDS: Array[StringName] = [
 	&"hollow_hit",
 	&"wave_start",
 	&"reload",
+	&"pickup",
 ]
 const POOL_3D: int = 14
 const POOL_UI: int = 4
@@ -76,6 +77,7 @@ func _ready() -> void:
 				takes.append(fallback)
 		if not takes.is_empty():
 			_streams[id] = takes
+	_register_web_samples()
 	for i in POOL_3D:
 		var player: AudioStreamPlayer3D = AudioStreamPlayer3D.new()
 		player.bus = _bus_or_master(SFX_BUS)
@@ -101,6 +103,9 @@ func _ready() -> void:
 	EventBus.neural_sync_ended.connect(func() -> void: AudioServer.playback_speed_scale = 1.0)
 	EventBus.wave_started.connect(func(_n: int) -> void: play_ui(&"wave_start", -6.0))
 	EventBus.weapon_reload_started.connect(_on_reload)
+	EventBus.pickup_collected.connect(
+		func(_kind: StringName, _amount: int, _at: Vector3) -> void: play_ui(&"pickup", -5.0)
+	)
 
 
 func _exit_tree() -> void:
@@ -238,6 +243,16 @@ func _on_reload(weapon: Node3D) -> void:
 
 static func _bus_or_master(bus: StringName) -> StringName:
 	return bus if AudioServer.get_bus_index(bus) >= 0 else &"Master"
+
+
+## Web: hand every sound to the browser's audio engine now, so the first
+## shot doesn't stall while a sample is uploaded (P1-27).
+func _register_web_samples() -> void:
+	if not OS.has_feature("web") or not AudioServer.has_method(&"register_stream_as_sample"):
+		return
+	for takes: Array in _streams.values():
+		for stream: AudioStream in takes:
+			AudioServer.register_stream_as_sample(stream)
 
 
 ## A random take of `id`.

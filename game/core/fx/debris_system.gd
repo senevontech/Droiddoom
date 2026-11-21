@@ -228,8 +228,10 @@ func _box_shape(size: Vector3) -> BoxShape3D:
 static func _collect(node: Node, out: Array[MeshInstance3D]) -> void:
 	for child: Node in node.get_children():
 		var mesh: MeshInstance3D = child as MeshInstance3D
-		if mesh != null and mesh.visible and mesh.mesh != null:
-			out.append(mesh)
+		# Merged meshes (P1-25) are skipped; their hidden original parts fly.
+		if mesh != null and mesh.mesh != null and not MeshMerger.is_merged(mesh):
+			if mesh.visible or MeshMerger.is_part(mesh):
+				out.append(mesh)
 		if child is Node3D and (child as Node3D).visible:
 			_collect(child, out)
 

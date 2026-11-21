@@ -74,6 +74,24 @@ extends Resource
 @export_group("Rewards")
 @export var scrap_value: int = 2
 
+@export_group("Walk animation")
+## Walk cycle radians per metre (Gait.rate). 0 = no walk animation.
+@export var gait_rate: float = 3.0
+## Hip swing for droids with `Visuals/HipL`/`HipR` pivots (rad).
+@export var gait_swing: float = 0.45
+## Body bob per step (m).
+@export var gait_bob: float = 0.04
+
+@export_group("Drops")
+## Chance (0..1) to drop a repair cell when destroyed (PickupSystem).
+@export_range(0.0, 1.0, 0.01) var drop_repair_chance: float = 0.0
+## Chance (0..1) to drop heavy ammo when destroyed.
+@export_range(0.0, 1.0, 0.01) var drop_ammo_chance: float = 0.0
+
+@export_group("HUD")
+## Height above the droid's origin where its health bar is drawn (m).
+@export var hud_bar_height: float = 1.6
+
 @export_group("Damage")
 ## Below this share of max HP the droid is crippled: it smokes and limps.
 @export_range(0.0, 1.0, 0.05) var cripple_ratio: float = 0.35

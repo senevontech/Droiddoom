@@ -6,6 +6,7 @@
 [resource]
 script = ExtResource("1_wd")
 projectile = ExtResource("2_proj")
+unlock_id = "weapon_rocket_pod"
 name_key = "WEAPON_ROCKET_POD"
 fire_mode = 0
 damage = 20.0

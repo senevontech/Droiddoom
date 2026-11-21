@@ -86,6 +86,10 @@ var _separation: Vector3 = Vector3.ZERO
 ## Backing away from a target that came too close (Gunner).
 var _retreating: bool = false
 var _flinch_tween: Tween
+## Beyond the preset's AI mid distance: moves every other physics frame (P1-26).
+var _far: bool = false
+## Procedural walk (P1-32): body bob, plus hip swing if the model has hips.
+var _gait: Gait
 var _hit_flash: HitFlash
 ## Game seconds until the telegraphed attack lands, -1 = none.
 var _attack_eta: float = -1.0
@@ -111,6 +115,18 @@ func _ready() -> void:
 		_attack_hitbox.damage_type = data.attack_damage_type
 		_attack_hitbox.knockback = data.attack_knockback
 		_attack_hitbox.source = self
+	if visuals != null and data.gait_rate > 0.0:
+		var hips: Array[Node3D] = []
+		for hip_name: String in ["HipL", "HipR"]:
+			var hip: Node3D = visuals.get_node_or_null(hip_name) as Node3D
+			if hip != null:
+				hips.append(hip)
+		_gait = Gait.new(hips, [] as Array[Node3D], visuals)
+		_gait.rate = data.gait_rate
+		_gait.swing = data.gait_swing
+		_gait.bob = data.gait_bob
+	# One mesh per material instead of ~10 parts (draw calls, P1-25).
+	MeshMerger.merge_tree(visuals)
 	_hit_flash = HitFlash.new(visuals)
 	_coordinator = EnemyCoordinator.find_or_create(self)
 	_coordinator.register_enemy(self)
@@ -145,6 +161,8 @@ func _physics_process(delta: float) -> void:
 		_brain.update(_think_elapsed)
 		_think_elapsed = 0.0
 		_think_movement()
+		var preset: QualityPreset = QualityManager.settings
+		_far = preset != null and distance_to_target() > preset.ai_mid_distance
 	_move(delta)
 
 
@@ -371,9 +389,34 @@ func _move(delta: float) -> void:
 	else:
 		velocity.y -= data.gravity * delta
 	var before: Vector3 = global_position
-	move_and_slide()
+	_physics_step(desired)
+	if _gait != null and not _far:
+		_gait.update(Vector2(velocity.x, velocity.z).length(), get_move_speed(), delta)
 	_track_stuck(delta, desired.length(), before)
 	_turn(delta, flat)
+
+
+## move_and_slide, but cheaper where nobody can tell (P1-26):
+## - standing still on the floor with nowhere to go: skip it entirely;
+## - far from the player: move every other physics frame, twice as far.
+func _physics_step(desired: Vector3) -> void:
+	var still: bool = (
+		desired.length_squared() < 0.0025
+		and Vector2(velocity.x, velocity.z).length_squared() < 0.0025
+		and is_on_floor()
+	)
+	if still:
+		velocity = Vector3.ZERO
+		return
+	if _far:
+		# Stagger by instance so half the far droids move on each frame.
+		if (Engine.get_physics_frames() + get_instance_id()) % 2 == 0:
+			return
+		velocity *= 2.0
+		move_and_slide()
+		velocity *= 0.5
+		return
+	move_and_slide()
 
 
 func _track_stuck(delta: float, wanted_speed: float, before: Vector3) -> void:
@@ -420,7 +463,8 @@ func _refresh_target() -> void:
 		_target_health = target.get_node_or_null("Health") as HealthComponent
 
 
-func _on_damaged(info: DamageInfo, _amount: float) -> void:
+func _on_damaged(info: DamageInfo, amount: float) -> void:
+	EventBus.enemy_hit.emit(self, amount, info.crit, info.source)
 	if info.knockback != Vector3.ZERO:
 		velocity.x += info.knockback.x
 		velocity.z += info.knockback.z
@@ -459,6 +503,8 @@ func _on_died(info: DamageInfo) -> void:
 		# Deferred: a blast that kills another volatile droid mustn't detonate
 		# it inside this explosion's own query loop.
 		_detonate.call_deferred(global_position + Vector3.UP * BLAST_HEIGHT)
+	if data.drop_repair_chance > 0.0 or data.drop_ammo_chance > 0.0:
+		PickupSystem.find_or_create(self).roll_drop(data, global_position)
 	defeated.emit(info)
 	EventBus.enemy_died.emit(self, info.source)
 	get_tree().create_timer(corpse).timeout.connect(queue_free)

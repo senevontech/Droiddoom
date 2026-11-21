@@ -11,6 +11,7 @@
 [ext_resource type="Script" path="res://core/waves/wave_director.gd" id="9_director"]
 [ext_resource type="Resource" path="res://data/waves/waves_arena.tres" id="10_waves"]
 [ext_resource type="PackedScene" path="res://ui/hud/hud.tscn" id="11_hud"]
+[ext_resource type="Script" path="res://world/common/level_warm_up.gd" id="20_warm"]
 
 [node name="Arena" type="Node3D"]
 script = ExtResource("1_arena")
@@ -44,3 +45,6 @@ wave_set = ExtResource("10_waves")
 spawn_parent = NodePath("../Enemies")
 
 [node name="Hud" parent="." instance=ExtResource("11_hud")]
+
+[node name="LevelWarmUp" type="CanvasLayer" parent="."]
+script = ExtResource("20_warm")

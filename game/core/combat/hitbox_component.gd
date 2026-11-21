@@ -20,6 +20,10 @@ func _ready() -> void:
 	monitoring = false
 	monitorable = false
 	collision_layer = 0
+	# Only ever used for one-shot shape queries (strike), so keep it out of the
+	# physics world: no broadphase updates every time the owner moves (P1-26).
+	disable_mode = CollisionObject3D.DISABLE_MODE_REMOVE
+	process_mode = Node.PROCESS_MODE_DISABLED
 	if source == null:
 		source = get_parent()
 

@@ -2,181 +2,401 @@
 
 [ext_resource type="Script" path="res://ui/hud/hud.gd" id="1_hud"]
 [ext_resource type="Script" path="res://ui/touch/touch_controls.gd" id="2_touch"]
+[ext_resource type="Theme" path="res://ui/theme/holo_theme.tres" id="3_theme"]
+[ext_resource type="Script" path="res://ui/hud/widgets/frost_panel.gd" id="4_frost"]
+[ext_resource type="Script" path="res://ui/hud/widgets/line_bar.gd" id="5_line"]
+[ext_resource type="Script" path="res://ui/hud/widgets/holo_reticle.gd" id="6_reticle"]
+[ext_resource type="Script" path="res://ui/hud/widgets/threat_overlay.gd" id="7_threats"]
+[ext_resource type="FontVariation" path="res://ui/theme/holo_body_font.tres" id="8_body"]
+[ext_resource type="Script" path="res://ui/hud/widgets/radar.gd" id="9_radar"]
+[ext_resource type="PackedScene" path="res://ui/pause/pause_menu.tscn" id="11_pause"]
+[ext_resource type="Script" path="res://ui/hud/widgets/hit_markers.gd" id="12_hits"]
 
-[sub_resource type="StyleBoxFlat" id="style_bar_bg"]
-bg_color = Color(0, 0, 0, 0.55)
-corner_radius_top_left = 3
-corner_radius_top_right = 3
-corner_radius_bottom_right = 3
-corner_radius_bottom_left = 3
+[sub_resource type="Gradient" id="flash_gradient"]
+offsets = PackedFloat32Array(0, 0.6, 1)
+colors = PackedColorArray(1, 0.1, 0.1, 0, 1, 0.1, 0.1, 0.05, 1, 0.12, 0.1, 0.6)
 
-[sub_resource type="StyleBoxFlat" id="style_dash_fill"]
-bg_color = Color(0.3, 0.85, 1, 1)
+[sub_resource type="GradientTexture2D" id="flash_texture"]
+gradient = SubResource("flash_gradient")
+width = 128
+height = 128
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(1, 1)
 
-[sub_resource type="StyleBoxFlat" id="style_reload_fill"]
-bg_color = Color(1, 0.8, 0.4, 1)
 
 [node name="Hud" type="CanvasLayer"]
 script = ExtResource("1_hud")
 
-[node name="DamageFlash" type="ColorRect" parent="."]
+[node name="Root" type="Control" parent="."]
+layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0.85, 0.05, 0.02, 0)
+theme = ExtResource("3_theme")
 
-[node name="SyncTint" type="ColorRect" parent="."]
+[node name="DamageFlash" type="TextureRect" parent="Root"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+modulate = Color(1, 1, 1, 0)
+mouse_filter = 2
+texture = SubResource("flash_texture")
+expand_mode = 1
+
+[node name="SyncTint" type="ColorRect" parent="Root"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 visible = false
+mouse_filter = 2
+color = Color(0.2, 0.85, 1, 0.12)
+
+[node name="Threats" type="Control" parent="Root"]
+layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0.2, 0.85, 1, 0.16)
+script = ExtResource("7_threats")
 
-[node name="Reticle" type="Label" parent="."]
-offset_right = 24.0
+[node name="Reticle" type="Control" parent="Root"]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 32.0
 offset_bottom = 32.0
 mouse_filter = 2
-theme_override_colors/font_color = Color(0.4, 1, 1, 1)
-theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
-theme_override_constants/outline_size = 4
-theme_override_font_sizes/font_size = 24
-text = "+"
-horizontal_alignment = 1
-vertical_alignment = 1
+script = ExtResource("6_reticle")
 
-[node name="TopLeft" type="VBoxContainer" parent="."]
-offset_left = 16.0
-offset_top = 12.0
-offset_right = 336.0
-offset_bottom = 64.0
+[node name="Hits" type="Control" parent="Root"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 2
+script = ExtResource("12_hits")
 
-[node name="HpText" type="Label" parent="TopLeft"]
-layout_mode = 2
-theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
-theme_override_constants/outline_size = 5
-theme_override_font_sizes/font_size = 16
-text = "HULL"
+[node name="RadarCard" type="MarginContainer" parent="Root"]
+layout_mode = 1
+anchors_preset = 0
+offset_left = 28.0
+offset_top = 20.0
+offset_right = 132.0
+offset_bottom = 124.0
+mouse_filter = 2
+theme_override_constants/margin_left = 0
+theme_override_constants/margin_top = 0
+theme_override_constants/margin_right = 0
+theme_override_constants/margin_bottom = 0
+script = ExtResource("4_frost")
+corner_radius = 52.0
 
-[node name="HpBar" type="ProgressBar" parent="TopLeft"]
-custom_minimum_size = Vector2(320, 18)
+[node name="Radar" type="Control" parent="Root/RadarCard"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_styles/background = SubResource("style_bar_bg")
-value = 100.0
-show_percentage = false
+script = ExtResource("9_radar")
 
-[node name="DashBar" type="ProgressBar" parent="TopLeft"]
-custom_minimum_size = Vector2(120, 6)
-layout_mode = 2
-size_flags_horizontal = 0
-mouse_filter = 2
-theme_override_styles/background = SubResource("style_bar_bg")
-theme_override_styles/fill = SubResource("style_dash_fill")
-max_value = 1.0
-value = 1.0
-show_percentage = false
-
-[node name="Wave" type="Label" parent="."]
+[node name="Objective" type="MarginContainer" parent="Root"]
+layout_mode = 1
 anchors_preset = 5
 anchor_left = 0.5
 anchor_right = 0.5
-offset_left = -260.0
-offset_top = 12.0
-offset_right = 260.0
-offset_bottom = 44.0
+offset_left = -120.0
+offset_top = 20.0
+offset_right = 120.0
+offset_bottom = 66.0
 grow_horizontal = 2
-theme_override_colors/font_color = Color(1, 0.85, 0.5, 1)
-theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
-theme_override_constants/outline_size = 6
-theme_override_font_sizes/font_size = 22
+mouse_filter = 2
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 8
+script = ExtResource("4_frost")
+corner_radius = 12.0
+
+[node name="Box" type="VBoxContainer" parent="Root/Objective"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 2
+
+[node name="Title" type="Label" parent="Root/Objective/Box"]
+layout_mode = 2
+theme_type_variation = &"HeadingLabel"
+theme_override_font_sizes/font_size = 14
+text = "STANDBY"
+horizontal_alignment = 1
+theme_override_constants/outline_size = 0
+
+[node name="Sub" type="Label" parent="Root/Objective/Box"]
+layout_mode = 2
+theme_type_variation = &"SmallLabel"
+theme_override_font_sizes/font_size = 11
 horizontal_alignment = 1
 
-[node name="Stats" type="Label" parent="."]
+[node name="Progress" type="Control" parent="Root/Objective/Box"]
+custom_minimum_size = Vector2(204, 2)
+layout_mode = 2
+mouse_filter = 2
+script = ExtResource("5_line")
+trail_time = 0.0
+ticks = 10
+
+[node name="StatsCard" type="MarginContainer" parent="Root"]
+layout_mode = 1
 anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
-offset_left = -276.0
-offset_top = 14.0
-offset_right = -16.0
-offset_bottom = 40.0
+offset_left = -178.0
+offset_top = 20.0
+offset_right = -28.0
+offset_bottom = 46.0
 grow_horizontal = 0
-theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
-theme_override_constants/outline_size = 5
-theme_override_font_sizes/font_size = 16
+mouse_filter = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 3
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 3
+script = ExtResource("4_frost")
+corner_radius = 9.0
+
+[node name="Stats" type="Label" parent="Root/StatsCard"]
+layout_mode = 2
+theme_type_variation = &"SmallLabel"
+theme_override_font_sizes/font_size = 11
+horizontal_alignment = 1
+
+[node name="Vitals" type="MarginContainer" parent="Root"]
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 28.0
+offset_top = -100.0
+offset_right = 278.0
+offset_bottom = -28.0
+grow_vertical = 0
+mouse_filter = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 10
+script = ExtResource("4_frost")
+corner_radius = 12.0
+
+[node name="Box" type="VBoxContainer" parent="Root/Vitals"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 4
+
+[node name="HullRow" type="HBoxContainer" parent="Root/Vitals/Box"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="HullValue" type="Label" parent="Root/Vitals/Box/HullRow"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 26
+text = "100"
+theme_override_fonts/font = ExtResource("8_body")
+theme_override_constants/outline_size = 0
+
+[node name="HullLabel" type="Label" parent="Root/Vitals/Box/HullRow"]
+layout_mode = 2
+theme_type_variation = &"SmallLabel"
+theme_override_font_sizes/font_size = 11
+text = "HULL"
+size_flags_vertical = 8
+
+[node name="Spacer" type="Control" parent="Root/Vitals/Box/HullRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="SyncTag" type="Label" parent="Root/Vitals/Box/HullRow"]
+layout_mode = 2
+theme_type_variation = &"HeadingLabel"
+theme_override_font_sizes/font_size = 10
+text = "SYNC"
+visible = false
+size_flags_vertical = 8
+theme_override_colors/font_color = Color(0.32, 0.86, 1, 1)
+theme_override_constants/outline_size = 0
+
+[node name="HullBar" type="Control" parent="Root/Vitals/Box"]
+custom_minimum_size = Vector2(218, 3)
+layout_mode = 2
+mouse_filter = 2
+script = ExtResource("5_line")
+ticks = 10
+
+[node name="DashRow" type="HBoxContainer" parent="Root/Vitals/Box"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="DashLabel" type="Label" parent="Root/Vitals/Box/DashRow"]
+layout_mode = 2
+theme_type_variation = &"SmallLabel"
+theme_override_font_sizes/font_size = 10
+text = "DASH"
+
+[node name="DashBar" type="Control" parent="Root/Vitals/Box/DashRow"]
+custom_minimum_size = Vector2(80, 2)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+script = ExtResource("5_line")
+trail_time = 0.0
+
+[node name="Weapons" type="MarginContainer" parent="Root"]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -258.0
+offset_top = -112.0
+offset_right = -28.0
+offset_bottom = -28.0
+grow_horizontal = 0
+grow_vertical = 0
+mouse_filter = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 10
+script = ExtResource("4_frost")
+corner_radius = 12.0
+
+[node name="Box" type="VBoxContainer" parent="Root/Weapons"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 1
+
+[node name="PrimaryName" type="Label" parent="Root/Weapons/Box"]
+layout_mode = 2
+theme_type_variation = &"SmallLabel"
+theme_override_font_sizes/font_size = 11
+text = "PULSE RIFLE"
 horizontal_alignment = 2
 
-[node name="Banner" type="Label" parent="."]
+[node name="AmmoRow" type="HBoxContainer" parent="Root/Weapons/Box"]
+layout_mode = 2
+alignment = 2
+theme_override_constants/separation = 6
+
+[node name="PrimaryState" type="Label" parent="Root/Weapons/Box/AmmoRow"]
+layout_mode = 2
+theme_type_variation = &"SmallLabel"
+theme_override_font_sizes/font_size = 11
+size_flags_vertical = 4
+theme_override_colors/font_color = Color(1, 0.72, 0.28, 1)
+
+[node name="MagValue" type="Label" parent="Root/Weapons/Box/AmmoRow"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+text = "32"
+theme_override_fonts/font = ExtResource("8_body")
+theme_override_constants/outline_size = 0
+
+[node name="ReserveValue" type="Label" parent="Root/Weapons/Box/AmmoRow"]
+layout_mode = 2
+theme_type_variation = &"SmallLabel"
+theme_override_font_sizes/font_size = 13
+text = "/ ∞"
+size_flags_vertical = 8
+
+[node name="AmmoBar" type="Control" parent="Root/Weapons/Box"]
+custom_minimum_size = Vector2(198, 2)
+layout_mode = 2
+mouse_filter = 2
+script = ExtResource("5_line")
+trail_time = 0.0
+
+[node name="HeavyRow" type="HBoxContainer" parent="Root/Weapons/Box"]
+layout_mode = 2
+alignment = 2
+theme_override_constants/separation = 8
+
+[node name="HeavyName" type="Label" parent="Root/Weapons/Box/HeavyRow"]
+layout_mode = 2
+theme_type_variation = &"SmallLabel"
+theme_override_font_sizes/font_size = 10
+text = "ROCKET POD"
+
+[node name="HeavyAmmo" type="Label" parent="Root/Weapons/Box/HeavyRow"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "4 / 16"
+theme_override_fonts/font = ExtResource("8_body")
+theme_override_constants/outline_size = 0
+
+[node name="Toast" type="Label" parent="Root"]
+layout_mode = 1
+theme_override_font_sizes/font_size = 15
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 32.0
+offset_top = -150.0
+offset_right = 328.0
+offset_bottom = -126.0
+grow_vertical = 0
+modulate = Color(1, 1, 1, 0)
+theme_override_fonts/font = ExtResource("8_body")
+
+[node name="Banner" type="Label" parent="Root"]
+modulate = Color(1, 1, 1, 0)
+layout_mode = 1
 anchors_preset = 5
 anchor_left = 0.5
-anchor_top = 0.22
+anchor_top = 0.2
 anchor_right = 0.5
-anchor_bottom = 0.22
+anchor_bottom = 0.2
 offset_left = -480.0
-offset_top = -30.0
+offset_top = -20.0
 offset_right = 480.0
-offset_bottom = 30.0
+offset_bottom = 20.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_colors/font_color = Color(1, 0.35, 0.25, 1)
-theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
-theme_override_constants/outline_size = 8
-theme_override_font_sizes/font_size = 40
+theme_type_variation = &"HeadingLabel"
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 20
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="BottomLeft" type="VBoxContainer" parent="."]
-anchors_preset = 2
+[node name="Hint" type="Label" parent="Root"]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
 anchor_top = 1.0
+anchor_right = 0.5
 anchor_bottom = 1.0
-offset_left = 16.0
-offset_top = -86.0
-offset_right = 916.0
-offset_bottom = -36.0
+offset_left = -420.0
+offset_top = -46.0
+offset_right = 420.0
+offset_bottom = -28.0
+grow_horizontal = 2
 grow_vertical = 0
-mouse_filter = 2
+theme_type_variation = &"SmallLabel"
+theme_override_font_sizes/font_size = 11
+text = "WASD move · Mouse aim · LMB fire · RMB heavy · Space dash · 1-4/wheel weapon · Q heavy · R reload · V camera · Esc pause"
+horizontal_alignment = 1
 
-[node name="Reload" type="ProgressBar" parent="BottomLeft"]
-visible = false
-custom_minimum_size = Vector2(220, 6)
-layout_mode = 2
-size_flags_horizontal = 0
-mouse_filter = 2
-theme_override_styles/background = SubResource("style_bar_bg")
-theme_override_styles/fill = SubResource("style_reload_fill")
-max_value = 1.0
-show_percentage = false
-
-[node name="Weapons" type="Label" parent="BottomLeft"]
-layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.85, 0.5, 1)
-theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
-theme_override_constants/outline_size = 5
-theme_override_font_sizes/font_size = 18
-
-[node name="Hint" type="Label" parent="."]
-anchors_preset = 2
-anchor_top = 1.0
-anchor_bottom = 1.0
-offset_left = 16.0
-offset_top = -30.0
-offset_right = 1016.0
-offset_bottom = -8.0
-grow_vertical = 0
-theme_override_colors/font_color = Color(1, 1, 1, 0.7)
-theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
-theme_override_constants/outline_size = 4
-theme_override_font_sizes/font_size = 13
-text = "WASD move · Mouse aim · LMB fire · RMB heavy · Space dash · 1-4/wheel weapon · Q heavy · R reload · V camera · Esc free mouse"
-
-[node name="TouchControls" type="Control" parent="."]
-layout_mode = 3
+[node name="TouchControls" type="Control" parent="Root"]
+layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -185,24 +405,25 @@ grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("2_touch")
 
-[node name="GameOver" type="Control" parent="."]
-layout_mode = 3
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="Dim" type="ColorRect" parent="GameOver"]
+[node name="GameOver" type="Control" parent="Root"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0, 0, 0, 0.6)
+visible = false
 
-[node name="Center" type="CenterContainer" parent="GameOver"]
+[node name="Dim" type="ColorRect" parent="Root/GameOver"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.01, 0.02, 0.03, 0.35)
+
+[node name="Center" type="CenterContainer" parent="Root/GameOver"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -210,29 +431,49 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="Box" type="VBoxContainer" parent="GameOver/Center"]
+[node name="Panel" type="MarginContainer" parent="Root/GameOver/Center"]
 layout_mode = 2
-theme_override_constants/separation = 14
+script = ExtResource("4_frost")
+corner_radius = 18.0
+shade = 0.25
+border = Color(1, 0.3, 0.32, 0.35)
+theme_override_constants/margin_left = 44
+theme_override_constants/margin_top = 26
+theme_override_constants/margin_right = 44
+theme_override_constants/margin_bottom = 28
 
-[node name="Title" type="Label" parent="GameOver/Center/Box"]
+[node name="Box" type="VBoxContainer" parent="Root/GameOver/Center/Panel"]
 layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.3, 0.22, 1)
-theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
-theme_override_constants/outline_size = 8
-theme_override_font_sizes/font_size = 44
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="Root/GameOver/Center/Panel/Box"]
+layout_mode = 2
+theme_type_variation = &"HeadingLabel"
+theme_override_font_sizes/font_size = 26
 text = "HOLLOW DESTROYED"
 horizontal_alignment = 1
+theme_override_colors/font_color = Color(1, 0.36, 0.38, 1)
+theme_override_constants/outline_size = 0
 
-[node name="Summary" type="Label" parent="GameOver/Center/Box"]
+[node name="Subtitle" type="Label" parent="Root/GameOver/Center/Panel/Box"]
 layout_mode = 2
-theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
-theme_override_constants/outline_size = 5
-theme_override_font_sizes/font_size = 20
+theme_type_variation = &"SmallLabel"
+theme_override_font_sizes/font_size = 11
+text = "PILOT LINK LOST — AXIOM HOLDS THE STREET"
 horizontal_alignment = 1
 
-[node name="Restart" type="Button" parent="GameOver/Center/Box"]
-custom_minimum_size = Vector2(260, 52)
+[node name="Summary" type="Label" parent="Root/GameOver/Center/Panel/Box"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+horizontal_alignment = 1
+theme_override_fonts/font = ExtResource("8_body")
+theme_override_constants/outline_size = 0
+
+[node name="Restart" type="Button" parent="Root/GameOver/Center/Panel/Box"]
+custom_minimum_size = Vector2(220, 0)
 layout_mode = 2
 size_flags_horizontal = 4
-theme_override_font_sizes/font_size = 22
-text = "Redeploy  (Enter)"
+text = "REDEPLOY   ENTER"
+theme_override_font_sizes/font_size = 13
+
+[node name="PauseMenu" parent="." instance=ExtResource("11_pause")]

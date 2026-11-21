@@ -62,6 +62,9 @@ extends Resource
 @export var aim_plane_height: float = 1.2
 ## Aim assist only considers enemies this close (m).
 @export var assist_range: float = 30.0
+## Touch auto-fire (P1-31) shoots while a droid is within this many degrees
+## of the (assisted) aim line, within `assist_range` and in clear view.
+@export var auto_fire_cone_deg: float = 4.0
 
 @export_group("Shake")
 ## Camera shake (P1-13, Settings.screen_shake_enabled turns it off). Shake =

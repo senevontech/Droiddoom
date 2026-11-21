@@ -1,44 +1,60 @@
 class_name TouchControls
 extends Control
-## On-screen controls for phones and tablets (P1-11). Shown only while the
-## active input device is TOUCH. Every finger is tracked by its touch index,
-## so moving, aiming and pressing buttons all work at the same time (Godot's
-## own Buttons only see the first finger).
+## On-screen controls for phones and tablets (P1-11, redesigned P1-31).
+## Shown only while the active input device is TOUCH. Every finger is tracked
+## by its touch index, so moving, aiming and buttons work at the same time
+## (Godot's own Buttons only see the first finger).
 ##
-## - Left half: floating move stick → `move_*` actions.
-## - Right half, Tactical: floating aim stick → `aim_*` actions; pushing it
-##   past FIRE_THRESHOLD also holds `fire_primary` (twin-stick).
-## - Right half, Shoulder: drag to look (InputRouter.add_look_drag) plus a
-##   FIRE button.
-## - Buttons: HEAVY (hold), SWAP weapon, RELOAD, CAM (switch camera), DASH.
-## It only presses the same input actions as keyboard and gamepad, so
-## gameplay never knows touch exists (AGENTS.md rule 6a). UI may look at the
-## camera mode; gameplay may not.
+## - **Hybrid sticks:** dim stick bases always show at their home spots; a
+##   touch anywhere in a stick's zone moves the stick there.
+##   Left zone = move (`move_*`). Right zone, Tactical = aim (`aim_*`);
+##   Shoulder = drag to look (InputRouter.add_look_drag).
+## - **Fire modes** (Settings.touch_fire_mode, toggled by the AUTO/MANUAL pill):
+##   AUTO fires while the aim is on a droid (InputRouter.is_aim_on_target) and
+##   the FIRE button also works; MANUAL fires only while FIRE is held.
+## - **Arc layout:** FIRE in the bottom-right corner; DASH, HEAVY, SWAP and
+##   RELOAD in an arc around it; fire-mode pill, CAM and PAUSE top-right.
+## - Size and opacity follow Settings.touch_button_scale / touch_opacity.
+## It presses the same input actions as keyboard and gamepad, so gameplay
+## never knows touch exists (AGENTS.md rule 6a). UI may look at the camera mode.
+
+## The PAUSE button was tapped (the HUD opens the pause menu).
+signal pause_requested
 
 ## Sizes are for a 720 px tall screen and scale with the shorter side.
 const REFERENCE: float = 720.0
-const STICK_RADIUS: float = 95.0
-const KNOB_RADIUS: float = 40.0
-const BUTTON_RADIUS: float = 42.0
-const FIRE_RADIUS: float = 64.0
-## The aim stick fires once pushed this far (0..1).
-const FIRE_THRESHOLD: float = 0.45
+const STICK_RADIUS: float = 92.0
+const KNOB_RADIUS: float = 36.0
+const BUTTON_RADIUS: float = 38.0
+const FIRE_RADIUS: float = 62.0
+const SMALL_RADIUS: float = 24.0
+## Distance of the arc buttons from the FIRE button's centre.
+const ARC_RADIUS: float = 122.0
+## Arc angles (degrees, 0 = right, 90 = up) for DASH, HEAVY, SWAP, RELOAD.
+const ARC_ANGLES: Array[float] = [180.0, 138.0, 98.0, 58.0]
+## Stick zones start below this share of the screen height (HUD lives above).
+const ZONE_TOP: float = 0.22
 ## Buttons accept touches a little outside their circle.
-const HIT_SLACK: float = 1.2
-const FILL: Color = Color(1.0, 1.0, 1.0, 0.12)
-const RING: Color = Color(1.0, 1.0, 1.0, 0.45)
-const PRESSED: Color = Color(1.0, 0.6, 0.3, 0.45)
+const HIT_SLACK: float = 1.15
+const FILL: Color = Color(1.0, 1.0, 1.0, 0.05)
+const RING: Color = Color(1.0, 1.0, 1.0, 0.32)
+const PRESSED: Color = Color(0.32, 0.86, 1.0, 0.28)
 const AXES: Array[StringName] = [&"move_left", &"move_right", &"move_up", &"move_down"]
 const AIM_AXES: Array[StringName] = [&"aim_left", &"aim_right", &"aim_up", &"aim_down"]
+## Special button ids (no input action).
+const CAM: StringName = &"__cam"
+const PAUSE: StringName = &"__pause"
+const FIRE_MODE: StringName = &"__fire_mode"
 
 
-## A floating stick: appears where the thumb lands.
+## A hybrid stick: rests at `home`, jumps to the thumb inside its zone.
 class Stick:
 	extends RefCounted
 	var index: int = -1
+	var home: Vector2 = Vector2.ZERO
 	var base: Vector2 = Vector2.ZERO
 	var knob: Vector2 = Vector2.ZERO
-	var radius: float = 95.0
+	var radius: float = 92.0
 
 	func start(touch_index: int, at: Vector2) -> void:
 		index = touch_index
@@ -51,6 +67,7 @@ class Stick:
 	func stop() -> void:
 		index = -1
 		knob = Vector2.ZERO
+		base = home
 
 	## -1..1 on each axis (x right, y down), length ≤ 1.
 	func value() -> Vector2:
@@ -64,17 +81,18 @@ class TouchButton:
 	var action: StringName = &""
 	## Hold = pressed while touched; otherwise a one-frame tap.
 	var hold: bool = false
-	var shoulder_only: bool = false
 	var centre: Vector2 = Vector2.ZERO
-	var radius: float = 42.0
+	var radius: float = 38.0
 	var index: int = -1
 
-	func _init(p_label: String, p_action: StringName, p_hold: bool, p_shoulder_only: bool) -> void:
+	func _init(p_label: String, p_action: StringName, p_hold: bool) -> void:
 		label = p_label
 		action = p_action
 		hold = p_hold
-		shoulder_only = p_shoulder_only
 
+
+## Where "is the aim on a droid?" comes from (tests replace it).
+var aim_on_target: Callable = InputRouter.is_aim_on_target
 
 var _move: Stick = Stick.new()
 var _aim: Stick = Stick.new()
@@ -92,24 +110,27 @@ var _dash_cooldown: float = 0.0
 func _ready() -> void:
 	# Full-screen anchors come from the scene (hud.tscn).
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_fire = TouchButton.new("FIRE", &"fire_primary", true, true)
+	_fire = TouchButton.new("FIRE", &"fire_primary", true)
 	_buttons = [
 		_fire,
-		TouchButton.new("HEAVY", &"fire_heavy", true, false),
-		TouchButton.new("SWAP", &"weapon_next", false, false),
-		TouchButton.new("RELOAD", &"reload", false, false),
-		TouchButton.new("CAM", &"", false, false),
-		TouchButton.new("DASH", &"ability", false, false),
+		TouchButton.new("DASH", &"ability", false),
+		TouchButton.new("HEAVY", &"fire_heavy", true),
+		TouchButton.new("SWAP", &"weapon_next", false),
+		TouchButton.new("RELOAD", &"reload", false),
+		TouchButton.new("AUTO", FIRE_MODE, false),
+		TouchButton.new("CAM", CAM, false),
+		TouchButton.new("II", PAUSE, false),
 	]
 	resized.connect(_layout)
 	EventBus.input_device_changed.connect(func(_device: int) -> void: _refresh())
 	EventBus.camera_mode_changed.connect(func(_mode: int) -> void: _release_all())
+	EventBus.settings_changed.connect(func(_key: StringName) -> void: _layout())
 	_layout()
 	_refresh()
 
 
 func _notification(what: int) -> void:
-	if what == NOTIFICATION_APPLICATION_FOCUS_OUT:
+	if what == NOTIFICATION_APPLICATION_FOCUS_OUT or what == NOTIFICATION_PAUSED:
 		_release_all()
 
 
@@ -124,30 +145,55 @@ func set_enabled(enabled: bool) -> void:
 	_refresh()
 
 
+## Centre of the button labelled `label` (tests, tutorials), or (-1, -1).
+func get_button_centre(label: String) -> Vector2:
+	for button: TouchButton in _buttons:
+		if button.label == label or (label == "AUTO" and button.action == FIRE_MODE):
+			return button.centre
+	return Vector2(-1.0, -1.0)
+
+
+## True while fire_primary is held by this overlay (tests, HUD).
+func is_firing() -> bool:
+	return _firing
+
+
 func _refresh() -> void:
 	visible = _enabled and InputRouter.active_device == InputRouter.Device.TOUCH
 	if not visible:
 		_release_all()
 
 
-## Places the buttons for the current screen size.
+## Places sticks and buttons for the current screen size and settings.
 func _layout() -> void:
 	var s: float = minf(size.x, size.y) / REFERENCE
+	var k: float = s * Settings.touch_button_scale
 	var w: float = size.x
 	var h: float = size.y
-	_move.radius = STICK_RADIUS * s
-	_aim.radius = STICK_RADIUS * s
-	var spots: Array[Vector2] = [
-		Vector2(w - 160.0 * s, h - 170.0 * s),  # FIRE (Shoulder)
-		Vector2(w - 90.0 * s, h - 360.0 * s),  # HEAVY
-		Vector2(w - 200.0 * s, h - 430.0 * s),  # SWAP
-		Vector2(w - 80.0 * s, h - 480.0 * s),  # RELOAD
-		Vector2(w - 70.0 * s, 110.0 * s),  # CAM
-		Vector2(w - 260.0 * s, h - 320.0 * s),  # DASH
-	]
-	for i in _buttons.size():
-		_buttons[i].centre = spots[i]
-		_buttons[i].radius = (FIRE_RADIUS if _buttons[i] == _fire else BUTTON_RADIUS) * s
+	_move.radius = STICK_RADIUS * k
+	_aim.radius = STICK_RADIUS * k
+	_move.home = Vector2(170.0 * k, h - 160.0 * k)
+	var fire_at: Vector2 = Vector2(w - 118.0 * k, h - 118.0 * k)
+	_aim.home = Vector2(fire_at.x - ARC_RADIUS * k - 220.0 * k, h - 150.0 * k)
+	if _move.index < 0:
+		_move.base = _move.home
+	if _aim.index < 0:
+		_aim.base = _aim.home
+	_fire.centre = fire_at
+	_fire.radius = FIRE_RADIUS * k
+	for i in ARC_ANGLES.size():
+		var a: float = deg_to_rad(ARC_ANGLES[i])
+		var button: TouchButton = _buttons[i + 1]
+		button.centre = fire_at + Vector2(cos(a), -sin(a)) * ARC_RADIUS * k
+		button.radius = BUTTON_RADIUS * k
+	# Top row, right to left: PAUSE, CAM, fire-mode pill.
+	var top: float = 62.0 * s
+	_buttons[7].centre = Vector2(w - 40.0 * s, top)
+	_buttons[6].centre = Vector2(w - 98.0 * s, top)
+	_buttons[5].centre = Vector2(w - 186.0 * s, top)
+	for i in [5, 6, 7]:
+		_buttons[i].radius = SMALL_RADIUS * s
+	queue_redraw()
 
 
 func _input(event: InputEvent) -> void:
@@ -184,7 +230,8 @@ func _process(_delta: float) -> void:
 		return
 	_feed_axes(AXES, _move.value())
 	_feed_axes(AIM_AXES, _aim.value())
-	var fire: bool = _fire.index >= 0 or _aim.value().length() > FIRE_THRESHOLD
+	var auto: bool = Settings.touch_fire_mode == Settings.TouchFireMode.AUTO
+	var fire: bool = _fire.index >= 0 or (auto and bool(aim_on_target.call()))
 	if fire != _firing:
 		_firing = fire
 		if fire:
@@ -200,50 +247,95 @@ func _process(_delta: float) -> void:
 
 
 func _draw() -> void:
-	var font: Font = ThemeDB.fallback_font
 	var s: float = minf(size.x, size.y) / REFERENCE
-	for stick: Stick in [_move, _aim]:
-		if stick.index >= 0:
-			draw_circle(stick.base, stick.radius, FILL)
-			draw_arc(stick.base, stick.radius, 0.0, TAU, 40, RING, 2.0)
-			draw_circle(stick.base + stick.knob, KNOB_RADIUS * s, RING)
+	var k: float = s * Settings.touch_button_scale
+	var alpha: float = Settings.touch_opacity
+	_draw_stick(_move, k, alpha)
+	if not _is_shoulder():
+		_draw_stick(_aim, k, alpha)
+	var auto: bool = Settings.touch_fire_mode == Settings.TouchFireMode.AUTO
 	for button: TouchButton in _buttons:
-		if not _is_available(button):
+		var lit: bool = button.index >= 0 or (button == _fire and _firing)
+		if button.action == FIRE_MODE:
+			_draw_pill(button, auto, s, alpha)
 			continue
-		draw_circle(button.centre, button.radius, PRESSED if button.index >= 0 else FILL)
-		draw_arc(button.centre, button.radius, 0.0, TAU, 32, RING, 2.0)
+		draw_circle(button.centre, button.radius, _fade(PRESSED if lit else FILL, alpha))
+		draw_arc(button.centre, button.radius, 0.0, TAU, 36, _fade(RING, alpha), 2.0, true)
+		if button == _fire and auto:
+			# A thin outer ring marks auto-fire.
+			draw_arc(
+				button.centre,
+				button.radius + 5.0 * k,
+				0.0,
+				TAU,
+				40,
+				_fade(RING, alpha * 0.5),
+				1.5,
+				true
+			)
 		if button.action == &"ability" and _dash_cooldown > 0.0:
-			# Cooldown: a dark sweep that shrinks as the dash recharges.
 			draw_arc(
 				button.centre,
 				button.radius * 0.8,
 				-PI * 0.5,
 				-PI * 0.5 + TAU * _dash_cooldown,
 				32,
-				Color(0.0, 0.0, 0.0, 0.5),
+				Color(0.0, 0.0, 0.0, 0.5 * alpha),
 				button.radius * 0.35
 			)
-		var font_size: int = roundi(15.0 * s) if button != _fire else roundi(20.0 * s)
-		var text_size: Vector2 = font.get_string_size(
-			button.label, HORIZONTAL_ALIGNMENT_CENTER, -1, font_size
+		var size_px: float = (
+			16.0 if button == _fire else (11.0 if button.radius < 30.0 * k else 12.0)
 		)
-		draw_string(
-			font,
-			button.centre + Vector2(-text_size.x * 0.5, text_size.y * 0.3),
-			button.label,
-			HORIZONTAL_ALIGNMENT_CENTER,
-			-1,
-			font_size,
-			Color(1.0, 1.0, 1.0, 0.85)
-		)
+		_draw_label(button.centre, button.label, roundi(size_px * k), alpha)
+
+
+func _draw_stick(stick: Stick, k: float, alpha: float) -> void:
+	var active: bool = stick.index >= 0
+	var a: float = alpha * (1.0 if active else 0.45)
+	draw_circle(stick.base, stick.radius, _fade(FILL, a))
+	draw_arc(stick.base, stick.radius, 0.0, TAU, 48, _fade(RING, a), 2.0, true)
+	draw_circle(stick.base + stick.knob, KNOB_RADIUS * k, _fade(PRESSED if active else FILL, a))
+	draw_arc(stick.base + stick.knob, KNOB_RADIUS * k, 0.0, TAU, 32, _fade(RING, a), 2.0, true)
+
+
+func _draw_pill(button: TouchButton, auto: bool, s: float, alpha: float) -> void:
+	var half: Vector2 = Vector2(46.0, 16.0) * s
+	var rect: Rect2 = Rect2(button.centre - half, half * 2.0)
+	var color: Color = Holo.CYAN if auto else Holo.AMBER
+	var glass: Color = Color(0.02, 0.06, 0.08, 0.85 if button.index < 0 else 0.6)
+	draw_rect(rect, _fade(glass, maxf(alpha, 0.6)))
+	draw_rect(rect, _fade(color, maxf(alpha, 0.6)), false, 1.5)
+	# Always readable, even at low button opacity: the mode is important state.
+	_draw_label(button.centre, "AUTO" if auto else "MANUAL", roundi(12.0 * s), 1.0, color)
+
+
+func _draw_label(
+	centre: Vector2, text: String, font_size: int, alpha: float, color: Color = Holo.WHITE
+) -> void:
+	var font: Font = Holo.HEADING_FONT
+	var text_size: Vector2 = font.get_string_size(text, HORIZONTAL_ALIGNMENT_CENTER, -1, font_size)
+	draw_string(
+		font,
+		centre + Vector2(-text_size.x * 0.5, text_size.y * 0.3),
+		text,
+		HORIZONTAL_ALIGNMENT_CENTER,
+		-1,
+		font_size,
+		_fade(color, alpha)
+	)
 
 
 func _press(index: int, at: Vector2) -> void:
 	for button: TouchButton in _buttons:
-		if _is_available(button) and at.distance_to(button.centre) <= button.radius * HIT_SLACK:
+		var hit: float = button.radius * HIT_SLACK
+		if button.action == FIRE_MODE:
+			hit = 48.0 * minf(size.x, size.y) / REFERENCE
+		if at.distance_to(button.centre) <= hit:
 			button.index = index
 			_button_down(button)
 			return
+	if at.y < size.y * ZONE_TOP:
+		return
 	if at.x < size.x * 0.5:
 		if _move.index < 0:
 			_move.start(index, at)
@@ -269,9 +361,21 @@ func _release(index: int) -> void:
 
 
 func _button_down(button: TouchButton) -> void:
-	if button.action == &"":  # CAM: camera switching is event-driven, call it directly.
-		Settings.toggle_camera_mode()
-		return
+	match button.action:
+		CAM:
+			Settings.toggle_camera_mode()  # Camera switching is event-driven.
+			return
+		PAUSE:
+			_release_all()
+			pause_requested.emit()
+			return
+		FIRE_MODE:
+			var auto: bool = Settings.touch_fire_mode == Settings.TouchFireMode.AUTO
+			Settings.set_value(
+				&"touch_fire_mode",
+				Settings.TouchFireMode.MANUAL if auto else Settings.TouchFireMode.AUTO
+			)
+			return
 	if button == _fire:
 		return  # _process holds fire_primary while the button is down.
 	Input.action_press(button.action)
@@ -293,12 +397,12 @@ func _release_all() -> void:
 	_firing = false
 
 
-func _is_available(button: TouchButton) -> bool:
-	return not button.shoulder_only or _is_shoulder()
-
-
 func _is_shoulder() -> bool:
 	return Settings.camera_mode == Settings.CameraMode.SHOULDER
+
+
+static func _fade(color: Color, alpha: float) -> Color:
+	return Color(color, color.a * alpha)
 
 
 ## Presses the four actions of a stick with analog strength.

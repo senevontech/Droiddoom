@@ -22,6 +22,11 @@ signal dashed(direction: Vector3, perfect: bool)
 const PLAYER_GROUP: StringName = &"player"
 ## Seconds HOLLOW's wreck lies around after death.
 const WRECK_TIME: float = 30.0
+## Shots never aim closer than this to the muzzle (m) (P1-32 shot-angle fix).
+const MIN_AIM_DISTANCE: float = 4.0
+## Aim more than this far off the barrel (turret still turning, cursor beside
+## or behind the gun) fires straight along the barrel instead (degrees).
+const MAX_CONVERGE_DEG: float = 20.0
 
 @export var stats: PlayerStats
 ## Primary weapons in slot order (slot 1 is equipped at spawn).
@@ -36,11 +41,16 @@ var heavy_weapon: Weapon
 
 ## Dash timing, i-frames and cooldown (P1-12).
 var dash: DashMotor = DashMotor.new()
+## True = every weapon is usable, whatever the Senevon account has (benchmark).
+## Call refresh_unlocks() after changing it.
+var ignore_unlocks: bool = false
 
 var _dash_requested: bool = false
 ## Real-time msec when the Neural Sync reward ends, -1 = not active.
 var _sync_end_msec: int = -1
 var _hit_flash: HitFlash
+## Procedural walk (P1-32): hips, knees and a torso bob.
+var _gait: Gait
 var _primaries: Array[Weapon] = []
 var _heavies: Array[Weapon] = []
 
@@ -56,6 +66,18 @@ func _ready() -> void:
 	health.max_health = stats.max_hp
 	health.reset()
 	dash.configure(stats)
+	_gait = Gait.new(
+		[$Legs/HipL as Node3D, $Legs/HipR as Node3D],
+		[$Legs/HipL/KneeL as Node3D, $Legs/HipR/KneeR as Node3D],
+		_turret
+	)
+	_gait.rate = stats.gait_rate
+	_gait.swing = stats.gait_swing
+	_gait.knee_bend = stats.gait_knee
+	_gait.bob = stats.gait_bob
+	# Legs and turret each become one mesh per material (draw calls, P1-25).
+	MeshMerger.merge_tree(_legs)
+	MeshMerger.merge_tree(_turret)
 	_hit_flash = HitFlash.new(self)
 	health.damaged.connect(_on_damaged)
 	health.died.connect(_on_died)
@@ -63,8 +85,10 @@ func _ready() -> void:
 		_primaries.append(_mount_weapon(data))
 	for data: WeaponData in heavy_loadout:
 		_heavies.append(_mount_weapon(data))
-	weapon = _primaries[0] if not _primaries.is_empty() else null
-	heavy_weapon = _heavies[0] if not _heavies.is_empty() else null
+	# Paid weapons stay mounted but can't be equipped until unlocked (D-035).
+	weapon = _first_unlocked(_primaries)
+	heavy_weapon = _first_unlocked(_heavies)
+	Senevon.state_changed.connect(refresh_unlocks)
 
 
 func _physics_process(delta: float) -> void:
@@ -94,6 +118,7 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 	velocity.x /= haste
 	velocity.z /= haste
+	_gait.update(0.0 if dash.is_dashing() else flat.length(), stats.move_speed, delta)
 	if flat.length() > 0.5:
 		var leg_yaw: float = atan2(-flat.x, -flat.z)
 		_legs.rotation.y = rotate_angle_toward(
@@ -121,10 +146,11 @@ func _process(delta: float) -> void:
 		_dash_requested = true
 	_handle_weapon_input()
 	var aim: Vector3 = InputRouter.get_aim_target()
+	var target: Vector3 = fire_target(get_muzzle_position(), get_turret_forward(), aim)
 	if InputRouter.is_primary_fire_held() and weapon != null:
-		weapon.try_fire(get_muzzle_position(), aim)
+		weapon.try_fire(get_muzzle_position(), target)
 	if InputRouter.is_heavy_fire_held() and heavy_weapon != null:
-		heavy_weapon.try_fire(get_muzzle_position(), aim)
+		heavy_weapon.try_fire(get_muzzle_position(), target)
 
 
 ## Dashes along the move input (or the turret's facing with no input). Checks
@@ -189,27 +215,55 @@ func end_neural_sync() -> void:
 	EventBus.neural_sync_ended.emit()
 
 
-## Equips primary weapon `index` (wraps around). A reload in progress is lost.
+## Equips primary weapon `index` (wraps around). Locked weapons are ignored.
+## A reload in progress is lost.
 func select_primary(index: int) -> void:
 	if _primaries.is_empty():
 		return
 	var next: Weapon = _primaries[wrapi(index, 0, _primaries.size())]
-	if next == weapon:
+	if next == weapon or not is_weapon_unlocked(next):
 		return
-	weapon.cancel_reload()
+	if weapon != null:
+		weapon.cancel_reload()
 	weapon = next
 	weapons_changed.emit(weapon, heavy_weapon)
 
 
-## Equips heavy weapon `index` (wraps around).
+## Equips heavy weapon `index` (wraps around). Locked weapons are ignored.
 func select_heavy(index: int) -> void:
 	if _heavies.is_empty():
 		return
 	var next: Weapon = _heavies[wrapi(index, 0, _heavies.size())]
-	if next == heavy_weapon:
+	if next == heavy_weapon or not is_weapon_unlocked(next):
 		return
-	heavy_weapon.cancel_reload()
+	if heavy_weapon != null:
+		heavy_weapon.cancel_reload()
 	heavy_weapon = next
+	weapons_changed.emit(weapon, heavy_weapon)
+
+
+## True if `gun` is free or the player has unlocked it (Senevon, D-035).
+func is_weapon_unlocked(gun: Weapon) -> bool:
+	return ignore_unlocks or Senevon.has_item(gun.data.unlock_id)
+
+
+## Re-checks unlocks (sign-in, purchase, Plus ended): a locked equipped weapon
+## is swapped for the first unlocked one; with nothing equipped, picks one.
+func refresh_unlocks() -> void:
+	var primary: Weapon = weapon
+	if primary == null or not is_weapon_unlocked(primary):
+		primary = _first_unlocked(_primaries)
+	var heavy: Weapon = heavy_weapon
+	if heavy == null or not is_weapon_unlocked(heavy):
+		heavy = _first_unlocked(_heavies)
+	if primary == weapon and heavy == heavy_weapon:
+		return
+	if weapon != null and primary != weapon:
+		weapon.cancel_reload()
+	if heavy_weapon != null and heavy != heavy_weapon:
+		heavy_weapon.cancel_reload()
+	weapon = primary
+	heavy_weapon = heavy
 	weapons_changed.emit(weapon, heavy_weapon)
 
 
@@ -221,6 +275,15 @@ func get_primaries() -> Array[Weapon]:
 ## All heavy weapons.
 func get_heavies() -> Array[Weapon]:
 	return _heavies
+
+
+## Adds `magazines` magazines to each heavy weapon's reserve (drops).
+## Returns the rounds added in total.
+func add_heavy_ammo(magazines: int) -> int:
+	var added: int = 0
+	for gun: Weapon in _heavies:
+		added += gun.add_reserve(gun.data.magazine_size * magazines)
+	return added
 
 
 ## Full ammo for every weapon (pickups and checkpoints later; dev wave reset now).
@@ -238,6 +301,28 @@ func apply_knockback(push: Vector3) -> void:
 ## World position where shots start.
 func get_muzzle_position() -> Vector3:
 	return _muzzle.global_position
+
+
+## Where shots really go (P1-32): the aim point, unless it would send rounds
+## out of the barrel sideways, backwards or steeply into the ground. Aim
+## within MIN_AIM_DISTANCE, or more than MAX_CONVERGE_DEG off the barrel
+## (fast flick, cursor beside the gun), fires along the barrel instead, at
+## the aim's height (eased toward muzzle height when very close).
+static func fire_target(muzzle: Vector3, barrel: Vector3, aim: Vector3) -> Vector3:
+	var forward: Vector3 = Vector3(barrel.x, 0.0, barrel.z)
+	forward = forward.normalized() if forward.length() > 0.01 else Vector3.FORWARD
+	var flat: Vector3 = Vector3(aim.x - muzzle.x, 0.0, aim.z - muzzle.z)
+	var distance: float = flat.length()
+	var aligned: bool = (
+		distance > 0.01 and forward.angle_to(flat / distance) <= deg_to_rad(MAX_CONVERGE_DEG)
+	)
+	if aligned and distance >= MIN_AIM_DISTANCE:
+		return aim
+	var reach: float = maxf(distance, MIN_AIM_DISTANCE)
+	var height: float = lerpf(muzzle.y, aim.y, clampf(distance / MIN_AIM_DISTANCE, 0.0, 1.0))
+	var target: Vector3 = muzzle + forward * reach
+	target.y = height
+	return target
 
 
 ## Horizontal direction the turret faces (unit vector).
@@ -294,11 +379,29 @@ func _handle_weapon_input() -> void:
 		select_primary(slot)
 	var cycle: int = InputRouter.get_weapon_cycle()
 	if cycle != 0:
-		select_primary(_primaries.find(weapon) + cycle)
+		select_primary(_next_unlocked_index(_primaries, weapon, cycle))
 	if InputRouter.is_heavy_cycle_pressed():
-		select_heavy(_heavies.find(heavy_weapon) + 1)
+		select_heavy(_next_unlocked_index(_heavies, heavy_weapon, 1))
 	if InputRouter.is_reload_pressed() and weapon != null:
 		weapon.start_reload()
+
+
+func _first_unlocked(list: Array[Weapon]) -> Weapon:
+	for gun: Weapon in list:
+		if is_weapon_unlocked(gun):
+			return gun
+	return null
+
+
+## Index of the next unlocked weapon `step` away from `current` (skips locked
+## ones). Returns the current index when no other weapon is unlocked.
+func _next_unlocked_index(list: Array[Weapon], current: Weapon, step: int) -> int:
+	var start: int = list.find(current)
+	for i: int in range(1, list.size() + 1):
+		var idx: int = wrapi(start + step * i, 0, list.size())
+		if is_weapon_unlocked(list[idx]):
+			return idx
+	return start
 
 
 func _mount_weapon(data: WeaponData) -> Weapon:

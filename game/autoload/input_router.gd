@@ -128,6 +128,12 @@ func consume_look_drag() -> Vector2:
 	return drag
 
 
+## True while touch/gamepad aim points at a droid in clear view (touch
+## auto-fire, P1-31). Always false for mouse aim or without a camera rig.
+func is_aim_on_target() -> bool:
+	return _rig != null and _rig.aim_on_target
+
+
 ## World-space point the player is aiming at. `Vector3.ZERO` with no camera rig.
 func get_aim_target() -> Vector3:
 	return _rig.aim_target if _rig != null else Vector3.ZERO

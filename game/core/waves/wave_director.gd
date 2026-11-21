@@ -35,6 +35,7 @@ var _queue: Array[PackedScene] = []
 var _alive: Dictionary = {}
 var _spawn_points: Array[Node3D] = []
 var _current: WaveData
+var _wave_size: int = 0
 
 
 ## Spawn points (Marker3Ds of the sector).
@@ -63,6 +64,11 @@ func get_wave_number() -> int:
 ## Droids of this wave still to spawn or still alive.
 func get_remaining() -> int:
 	return _queue.size() + _alive.size()
+
+
+## Droids in the current wave in total (HUD progress).
+func get_wave_size() -> int:
+	return _wave_size
 
 
 ## Seconds until the next wave starts (0 when not in a break).
@@ -131,6 +137,7 @@ func _start_wave(number: int) -> void:
 	_wave = number
 	_current = wave_set.waves[mini(number, wave_set.waves.size()) - 1]
 	_queue = build_roster(_current.pool, get_budget(number), rng)
+	_wave_size = _queue.size()
 	_phase = Phase.ACTIVE
 	_timer = 0.0
 	wave_started.emit(number)

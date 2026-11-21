@@ -9,6 +9,9 @@ enum FireMode { PROJECTILE, BEAM }
 
 ## Translation key for the weapon name.
 @export var name_key: String = ""
+## Senevon shop item that unlocks this weapon, without the "dd:" prefix
+## (e.g. "weapon_railgun", see Senevon's supabase/droiddoom.sql). Empty = free (D-035).
+@export var unlock_id: String = ""
 @export var fire_mode: FireMode = FireMode.PROJECTILE
 ## Flight data for PROJECTILE weapons.
 @export var projectile: ProjectileData

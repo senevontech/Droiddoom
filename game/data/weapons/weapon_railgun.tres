@@ -6,6 +6,7 @@
 [resource]
 script = ExtResource("1_wd")
 projectile = ExtResource("2_proj")
+unlock_id = "weapon_railgun"
 name_key = "WEAPON_RAILGUN"
 fire_mode = 0
 damage = 75.0

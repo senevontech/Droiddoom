@@ -43,3 +43,5 @@ game/addons/** -filter -diff -merge
 game/assets/audio/sfx/** -filter -diff -merge
 # Small UI images (boot splash, rendered by us): plain git so CI imports them.
 game/assets/ui/** -filter -diff -merge
+# Bundled OFL fonts (~830 KB): plain git so CI (no LFS) has real fonts.
+game/assets/fonts/** -filter -diff -merge

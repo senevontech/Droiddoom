@@ -8,8 +8,14 @@ extends Node
 
 # --- Combat ---
 signal enemy_died(enemy: Node, killer: Node)
+## A droid took damage (after multipliers). `source` = who dealt it (may be
+## null). The HUD shows hit markers for the player's hits.
+signal enemy_hit(enemy: Node, amount: float, crit: bool, source: Node)
 signal player_damaged(amount: float, damage_type: int)
 signal player_died
+## HOLLOW picked up a droid drop (`kind` = &"repair" / &"ammo", `amount` =
+## hull restored or rounds added).
+signal pickup_collected(kind: StringName, amount: int, position: Vector3)
 ## HOLLOW started a dash (horizontal unit direction).
 signal player_dashed(direction: Vector3)
 ## A dash dodged `threats` hits that were about to land (GDD §4.4). The
@@ -46,6 +52,8 @@ signal currency_changed(currency: StringName, new_amount: int)
 
 # --- Settings / system ---
 signal camera_mode_changed(mode: int)
+## A player setting changed (Settings.set_value). `key` = the setting's name.
+signal settings_changed(key: StringName)
 signal quality_preset_changed(preset: int)
 signal input_device_changed(device: int)
 

@@ -32,7 +32,11 @@ func update(delta: float) -> void:
 	var stick: Vector2 = InputRouter.get_stick_aim_vector()
 	var speed: float = rig.tuning.stick_look_speed * delta
 	_look(-stick.x * speed, -stick.y * speed)
-	var drag: Vector2 = InputRouter.consume_look_drag() * rig.tuning.touch_look_sensitivity
+	var drag: Vector2 = (
+		InputRouter.consume_look_drag()
+		* rig.tuning.touch_look_sensitivity
+		* Settings.touch_look_sensitivity
+	)
 	_look(-drag.x, -drag.y)
 	_transform = _compute_transform()
 

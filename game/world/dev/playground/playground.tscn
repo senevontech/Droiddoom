@@ -9,6 +9,7 @@
 [ext_resource type="Script" path="res://core/ai/enemy_coordinator.gd" id="7_coord"]
 [ext_resource type="Script" path="res://weapons/projectile_system.gd" id="8_proj"]
 [ext_resource type="Script" path="res://core/fx/debris_system.gd" id="9_debris"]
+[ext_resource type="Script" path="res://world/common/level_warm_up.gd" id="20_warm"]
 
 [node name="Playground" type="Node3D"]
 script = ExtResource("1_pg")
@@ -102,3 +103,6 @@ offset_bottom = -8.0
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 4
 theme_override_font_sizes/font_size = 14
+
+[node name="LevelWarmUp" type="CanvasLayer" parent="."]
+script = ExtResource("20_warm")

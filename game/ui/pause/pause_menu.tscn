@@ -1,0 +1,196 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://ui/pause/pause_menu.gd" id="1_pause"]
+[ext_resource type="Theme" path="res://ui/theme/holo_theme.tres" id="2_theme"]
+[ext_resource type="Script" path="res://ui/hud/widgets/frost_panel.gd" id="3_frame"]
+
+[sub_resource type="ButtonGroup" id="fire_group"]
+
+[node name="PauseMenu" type="CanvasLayer"]
+layer = 60
+script = ExtResource("1_pause")
+
+[node name="Root" type="Control" parent="."]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("2_theme")
+
+[node name="Dim" type="ColorRect" parent="Root"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.01, 0.02, 0.03, 0.3)
+
+[node name="Center" type="CenterContainer" parent="Root"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Panel" type="MarginContainer" parent="Root/Center"]
+layout_mode = 2
+theme_override_constants/margin_left = 36
+theme_override_constants/margin_top = 22
+theme_override_constants/margin_right = 36
+theme_override_constants/margin_bottom = 26
+script = ExtResource("3_frame")
+corner_radius = 18.0
+shade = 0.3
+
+[node name="Box" type="VBoxContainer" parent="Root/Center/Panel"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Title" type="Label" parent="Root/Center/Panel/Box"]
+layout_mode = 2
+theme_type_variation = &"HeadingLabel"
+theme_override_font_sizes/font_size = 26
+text = "PAUSED"
+horizontal_alignment = 1
+
+[node name="Buttons" type="HBoxContainer" parent="Root/Center/Panel/Box"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 14
+
+[node name="Resume" type="Button" parent="Root/Center/Panel/Box/Buttons"]
+custom_minimum_size = Vector2(180, 46)
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+text = "RESUME"
+
+[node name="Restart" type="Button" parent="Root/Center/Panel/Box/Buttons"]
+custom_minimum_size = Vector2(180, 46)
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+text = "RESTART"
+
+[node name="Section" type="Label" parent="Root/Center/Panel/Box"]
+layout_mode = 2
+theme_type_variation = &"HeadingLabel"
+theme_override_colors/font_color = Color(0.32, 0.86, 1, 1)
+theme_override_font_sizes/font_size = 13
+text = "CONTROLS"
+
+[node name="FireRow" type="HBoxContainer" parent="Root/Center/Panel/Box"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="Label" type="Label" parent="Root/Center/Panel/Box/FireRow"]
+custom_minimum_size = Vector2(170, 0)
+layout_mode = 2
+theme_type_variation = &"SmallLabel"
+text = "TOUCH FIRE MODE"
+
+[node name="Auto" type="Button" parent="Root/Center/Panel/Box/FireRow"]
+custom_minimum_size = Vector2(116, 40)
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+toggle_mode = true
+button_pressed = true
+button_group = SubResource("fire_group")
+text = "AUTO"
+
+[node name="Manual" type="Button" parent="Root/Center/Panel/Box/FireRow"]
+custom_minimum_size = Vector2(116, 40)
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+toggle_mode = true
+button_group = SubResource("fire_group")
+text = "MANUAL"
+
+[node name="Look" type="HBoxContainer" parent="Root/Center/Panel/Box"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="Label" type="Label" parent="Root/Center/Panel/Box/Look"]
+custom_minimum_size = Vector2(170, 0)
+layout_mode = 2
+theme_type_variation = &"SmallLabel"
+text = "LOOK SENSITIVITY"
+
+[node name="Slider" type="HSlider" parent="Root/Center/Panel/Box/Look"]
+custom_minimum_size = Vector2(240, 28)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+min_value = 0.4
+max_value = 2.5
+step = 0.05
+value = 1.0
+
+[node name="Assist" type="HBoxContainer" parent="Root/Center/Panel/Box"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="Label" type="Label" parent="Root/Center/Panel/Box/Assist"]
+custom_minimum_size = Vector2(170, 0)
+layout_mode = 2
+theme_type_variation = &"SmallLabel"
+text = "AIM ASSIST"
+
+[node name="Slider" type="HSlider" parent="Root/Center/Panel/Box/Assist"]
+custom_minimum_size = Vector2(240, 28)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+min_value = 0.0
+max_value = 1.0
+step = 0.05
+value = 0.5
+
+[node name="Size" type="HBoxContainer" parent="Root/Center/Panel/Box"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="Label" type="Label" parent="Root/Center/Panel/Box/Size"]
+custom_minimum_size = Vector2(170, 0)
+layout_mode = 2
+theme_type_variation = &"SmallLabel"
+text = "BUTTON SIZE"
+
+[node name="Slider" type="HSlider" parent="Root/Center/Panel/Box/Size"]
+custom_minimum_size = Vector2(240, 28)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+min_value = 0.75
+max_value = 1.4
+step = 0.05
+value = 1.0
+
+[node name="Opacity" type="HBoxContainer" parent="Root/Center/Panel/Box"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="Label" type="Label" parent="Root/Center/Panel/Box/Opacity"]
+custom_minimum_size = Vector2(170, 0)
+layout_mode = 2
+theme_type_variation = &"SmallLabel"
+text = "BUTTON OPACITY"
+
+[node name="Slider" type="HSlider" parent="Root/Center/Panel/Box/Opacity"]
+custom_minimum_size = Vector2(240, 28)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+min_value = 0.25
+max_value = 1.0
+step = 0.05
+value = 0.8
+
+[node name="Shake" type="CheckButton" parent="Root/Center/Panel/Box"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+button_pressed = true
+text = "SCREEN SHAKE"

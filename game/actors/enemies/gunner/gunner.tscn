@@ -119,12 +119,18 @@ shape = SubResource("shape_optic")
 
 [node name="Visuals" type="Node3D" parent="."]
 
-[node name="LegL" type="MeshInstance3D" parent="Visuals"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.17, 0.43, 0)
+[node name="HipL" type="Node3D" parent="Visuals"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.17, 0.86, 0)
+
+[node name="LegL" type="MeshInstance3D" parent="Visuals/HipL"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.43, 0)
 mesh = SubResource("mesh_leg")
 
-[node name="LegR" type="MeshInstance3D" parent="Visuals"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.17, 0.43, 0)
+[node name="HipR" type="Node3D" parent="Visuals"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.17, 0.86, 0)
+
+[node name="LegR" type="MeshInstance3D" parent="Visuals/HipR"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.43, 0)
 mesh = SubResource("mesh_leg")
 
 [node name="Hips" type="MeshInstance3D" parent="Visuals"]

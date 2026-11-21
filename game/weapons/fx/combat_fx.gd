@@ -202,6 +202,21 @@ func get_smoke_source_count() -> int:
 	return _sources.size()
 
 
+## Shows one of everything this node draws at `at` (beams of every damage
+## type, sparks, smoke, fire, every pooled light), so their shaders compile
+## during loading instead of on the first shot (P1-27). Lights also make the
+## nearby world/actor materials compile their lit variants.
+func warm_up(at: Vector3) -> void:
+	for t in _beams.size():
+		_on_beam_drawn(at + Vector3(0.0, 0.2 * t, 0.0), at + Vector3(1.0, 0.2 * t, 0.0), 0.05, t)
+	for t in _spark_meshes.size():
+		_on_hit_landed(at, Vector3.UP, t, true)
+	_smoke.spawn(at, Vector3.ZERO, 0.2, 0.3, 0.3, SMOKE_COLOR)
+	_fire.spawn(at, Vector3.ZERO, 0.2, 0.3, 0.3, FIRE_COLOR)
+	for i in _lights.size():
+		_flash_light(at + Vector3.UP, Color(1.0, 0.7, 0.4), 0.4, 8.0, 0.25)
+
+
 ## A missile's exhaust trail puff (called by ProjectileSystem).
 func emit_trail(at: Vector3) -> void:
 	if rng.randf() > maxf(_density, 0.4):

@@ -42,3 +42,13 @@ extends Resource
 ## How much of its real-time speed HOLLOW keeps while the world is slowed
 ## (moving and firing): 0 = slowed like everything else, 1 = full speed.
 @export_range(0.0, 1.0, 0.05) var neural_sync_haste: float = 0.7
+
+@export_group("Walk animation")
+## Walk cycle radians per metre (Gait.rate).
+@export var gait_rate: float = 2.3
+## Hip swing (rad).
+@export var gait_swing: float = 0.55
+## Knee bend (rad).
+@export var gait_knee: float = 0.85
+## Upper-body bob (m).
+@export var gait_bob: float = 0.035

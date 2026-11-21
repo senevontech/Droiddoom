@@ -20,3 +20,7 @@ neural_sync_duration = 1.5
 neural_sync_time_scale = 0.35
 neural_sync_damage_bonus = 1.5
 neural_sync_haste = 0.7
+gait_rate = 2.3
+gait_swing = 0.55
+gait_knee = 0.85
+gait_bob = 0.035
